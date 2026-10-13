@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Local Flow state and large assets
+audio/
+models/
+recordings/
+renders/
+sessions/
+*.db
+*.sqlite
+*.sqlite3
+
+# Analysis output
+analysis*.json
+*.mid
+*.wav
+*.flac
+*.mp3
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
