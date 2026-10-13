@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from flow.composer import beethoven_opening_recipe
+from flow.listening.benchmark import compare_analysis_to_score
 from flow.listening import analyze_audio
 
 
@@ -26,6 +28,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.25,
         help="pitch-evidence window in seconds (relative candidates, not transcription)",
     )
+
+    compare = commands.add_parser(
+        "compare-score", help="compare saved audio evidence with a separate score reference"
+    )
+    compare.add_argument("analysis", type=Path, help="JSON output from flow analyze")
+    compare.add_argument(
+        "--reference",
+        type=Path,
+        default=Path("examples/beethoven5/score_reference.json"),
+    )
+    compare.add_argument("--out", type=Path, default=Path("score-comparison.json"))
+    compare.add_argument("--minimum-strength", type=float, default=0.3)
 
     seed = commands.add_parser(
         "init-beethoven", help="write the score-informed opening motif recipe"
@@ -51,6 +65,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "init-beethoven":
         beethoven_opening_recipe().write_json(args.out)
         print(f"Wrote benchmark recipe to {args.out}")
+        return 0
+    if args.command == "compare-score":
+        analysis = json.loads(args.analysis.read_text(encoding="utf-8"))
+        reference = json.loads(args.reference.read_text(encoding="utf-8"))
+        result = compare_analysis_to_score(
+            analysis, reference, minimum_strength=args.minimum_strength
+        )
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        status = "found" if result["ordered_pitch_class_sequence_found"] else "not found"
+        print(f"Ordered pitch-class sequence {status}; wrote comparison to {args.out}")
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
 

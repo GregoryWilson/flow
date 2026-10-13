@@ -34,6 +34,8 @@
 - Call RMS threshold spans low-energy intervals, never silence or rests.
 - Compare the first motif's candidates and onset gaps with a separately stored
   score reference after the audio-only measurements are frozen.
+- Emit an ordered pitch-class comparison with octave support, onset-cluster
+  counts, and performance timestamps; keep it out of the audio-only result.
 - Measure note and phrase accuracy against reviewed reference events before
   treating the analyzer as a source of reusable musical knowledge.
 

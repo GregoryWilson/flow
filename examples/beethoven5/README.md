@@ -12,19 +12,21 @@ Place a selected local recording under `recordings/beethoven5/`. Record its
 source and performance identity in the future intake manifest. The repository
 does not distribute or commit the recording.
 
-The experiment will eventually use three isolated evidence lanes:
+The benchmark uses three isolated evidence lanes:
 
 1. **Audio-only:** automatic measurements with no score or published analysis.
-2. **Score reference:** reviewed symbolic facts about the composition.
+2. **Score reference:** symbolic facts in `score_reference.json`, kept out of
+   the audio-only analysis output.
 3. **Interpretive sources:** attributed musical analysis and performance notes.
 
 Do not expose lanes 2 or 3 to the audio-only interpretation until its output is
-frozen. This lets us measure listening rather than recognition or recall.
+frozen. The comparison report is generated only after that output is saved.
 
 ## Baseline commands
 
 ```powershell
 flow analyze recordings\beethoven5\performance.ogg --start 0 --duration 30 --out analysis.beethoven5.opening.json
+flow compare-score analysis.beethoven5.opening.json --reference examples\beethoven5\score_reference.json --out analysis.beethoven5.score-comparison.json
 flow init-beethoven --out beethoven-opening.recipe.json
 ```
 
@@ -41,6 +43,8 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Inspect pulse-window interval spread to identify unstable or ambiguous pulse
   tracking around held notes.
 - Inspect beat estimates and document ambiguity around pauses and held notes.
+- Compare the audio-only output to `score_reference.json` only after saving it;
+  the report is a review aid, not a melody-transcription accuracy score.
 - Compare chroma evidence with the score only after audio-only output is saved.
 - Mark which observations support motif boundaries.
 - Render the recipe with neutral synthesis.
