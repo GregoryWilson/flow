@@ -20,6 +20,12 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument(
         "--duration", type=float, help="passage duration in seconds (default: remainder of file)"
     )
+    analyze.add_argument(
+        "--pitch-window",
+        type=float,
+        default=0.25,
+        help="pitch-evidence window in seconds (relative candidates, not transcription)",
+    )
 
     seed = commands.add_parser(
         "init-beethoven", help="write the score-informed opening motif recipe"
@@ -33,7 +39,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "analyze":
-        result = analyze_audio(args.audio, start_seconds=args.start, duration_seconds=args.duration)
+        result = analyze_audio(
+            args.audio,
+            start_seconds=args.start,
+            duration_seconds=args.duration,
+            pitch_window_seconds=args.pitch_window,
+        )
         result.write_json(args.out)
         print(f"Wrote measurements to {args.out}")
         return 0

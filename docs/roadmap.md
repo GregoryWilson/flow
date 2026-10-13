@@ -26,6 +26,17 @@
 - Inspect these outputs against listening and score references before adding
   motif, fermata, or phrase claims.
 
+### Listening Lab phase 1.2 — phrase and pitch evidence
+
+- Add short-window CQT pitch candidates with timestamps and relative strengths.
+- Keep candidates explicitly separate from note transcription and score facts;
+  ensemble harmonics and orchestration can make the strongest bin misleading.
+- Call RMS threshold spans low-energy intervals, never silence or rests.
+- Compare the first motif's candidates and onset gaps with a separately stored
+  score reference after the audio-only measurements are frozen.
+- Measure note and phrase accuracy against reviewed reference events before
+  treating the analyzer as a source of reusable musical knowledge.
+
 ## Milestone 2 — Twenty-five-recording pilot
 
 Choose deliberately contrasting recordings that expose limitations: dense and

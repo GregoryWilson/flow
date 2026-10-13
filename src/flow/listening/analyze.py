@@ -29,6 +29,20 @@ class TimeWindow:
 
 
 @dataclass(frozen=True, slots=True)
+class PitchCandidate:
+    midi_note: int
+    note_name: str
+    relative_strength: float
+
+
+@dataclass(frozen=True, slots=True)
+class PitchEvidenceWindow:
+    start_seconds: float
+    end_seconds: float
+    candidates: tuple[PitchCandidate, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AnalysisResult:
     source_path: str
     sample_rate: int
@@ -46,8 +60,9 @@ class AnalysisResult:
     onset_gaps: tuple[dict[str, float], ...]
     beat_interval_windows: tuple[dict[str, float | int], ...]
     chroma_windows: tuple[TimeWindow, ...]
-    quiet_intervals: tuple[dict[str, float], ...]
-    analyzer: str = "flow-listening-passage/0.2"
+    pitch_evidence_windows: tuple[PitchEvidenceWindow, ...]
+    low_energy_intervals: tuple[dict[str, float], ...]
+    analyzer: str = "flow-listening-passage/0.3"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -136,21 +151,66 @@ def beat_interval_windows(
     return tuple(result)
 
 
-def _quiet_intervals(rms_values: Sequence[float], frame_times: Sequence[float], *, threshold: float,
-                     minimum_seconds: float) -> tuple[dict[str, float], ...]:
-    quiet = [float(value) <= threshold for value in rms_values]
+def _low_energy_intervals(
+    rms_values: Sequence[float],
+    frame_times: Sequence[float],
+    *,
+    threshold: float,
+    minimum_seconds: float,
+) -> tuple[dict[str, float], ...]:
+    low_energy = [float(value) <= threshold for value in rms_values]
     intervals: list[dict[str, float]] = []
     start: int | None = None
-    for index, is_quiet in enumerate(quiet + [False]):
-        if is_quiet and start is None:
+    for index, is_low_energy in enumerate(low_energy + [False]):
+        if is_low_energy and start is None:
             start = index
-        elif not is_quiet and start is not None:
+        elif not is_low_energy and start is not None:
             end = min(index, len(frame_times) - 1)
             t0, t1 = float(frame_times[start]), float(frame_times[end])
             if t1 - t0 >= minimum_seconds:
                 intervals.append({"start_seconds": t0, "end_seconds": t1, "duration_seconds": t1 - t0})
             start = None
     return tuple(intervals)
+
+
+_PITCH_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+
+
+def strongest_pitch_candidates(
+    salience: Sequence[float], midi_start: int = 36, *, count: int = 5
+) -> tuple[PitchCandidate, ...]:
+    """Return local CQT peaks as relative pitch evidence, not note transcription."""
+    if count < 1:
+        raise ValueError("count must be at least 1")
+    if len(salience) == 0:
+        return ()
+
+    peak_indices = [
+        index
+        for index, value in enumerate(salience)
+        if value > 0
+        and (index == 0 or value > salience[index - 1])
+        and (index == len(salience) - 1 or value >= salience[index + 1])
+    ]
+    if not peak_indices:
+        return ()
+
+    maximum = max(float(salience[index]) for index in peak_indices)
+    if maximum <= 0:
+        return ()
+    peak_indices.sort(key=lambda index: float(salience[index]), reverse=True)
+    result = []
+    for index in peak_indices[:count]:
+        midi_note = midi_start + index
+        note_name = f"{_PITCH_NAMES[midi_note % 12]}{midi_note // 12 - 1}"
+        result.append(
+            PitchCandidate(
+                midi_note=midi_note,
+                note_name=note_name,
+                relative_strength=float(salience[index]) / maximum,
+            )
+        )
+    return tuple(result)
 
 
 def analyze_audio(
@@ -160,6 +220,7 @@ def analyze_audio(
     duration_seconds: float | None = None,
     onset_merge_seconds: float = 0.09,
     chroma_window_seconds: float = 2.0,
+    pitch_window_seconds: float = 0.25,
 ) -> AnalysisResult:
     """Measure a local audio file or a bounded passage using librosa."""
     try:
@@ -178,6 +239,8 @@ def analyze_audio(
         raise ValueError("onset_merge_seconds cannot be negative")
     if chroma_window_seconds <= 0:
         raise ValueError("chroma_window_seconds must be positive")
+    if pitch_window_seconds <= 0:
+        raise ValueError("pitch_window_seconds must be positive")
 
     full_duration = float(librosa.get_duration(path=path))
     if start_seconds >= full_duration:
@@ -202,6 +265,14 @@ def analyze_audio(
     rms = librosa.feature.rms(y=signal, hop_length=hop_length)[0]
     centroid = librosa.feature.spectral_centroid(y=signal, sr=sample_rate, hop_length=hop_length)[0]
     chroma = librosa.feature.chroma_cqt(y=signal, sr=sample_rate, hop_length=hop_length)
+    pitch_cqt = librosa.cqt(
+        y=signal,
+        sr=sample_rate,
+        hop_length=hop_length,
+        fmin=librosa.note_to_hz("C2"),
+        n_bins=60,
+        bins_per_octave=12,
+    )
 
     local_onsets = tuple(float(v) for v in librosa.frames_to_time(onset_frames, sr=sample_rate, hop_length=hop_length))
     local_beats = tuple(float(v) for v in librosa.frames_to_time(beat_frames, sr=sample_rate, hop_length=hop_length))
@@ -221,8 +292,24 @@ def analyze_audio(
         )
         for frame in range(0, chroma.shape[1], frames_per_window)
     )
+    pitch_frames_per_window = max(1, round(pitch_window_seconds * sample_rate / hop_length))
+    pitch_evidence_windows = tuple(
+        PitchEvidenceWindow(
+            start_seconds=start_seconds + frame * hop_length / sample_rate,
+            end_seconds=min(
+                start_seconds + len(signal) / sample_rate,
+                start_seconds + (frame + pitch_frames_per_window) * hop_length / sample_rate,
+            ),
+            candidates=strongest_pitch_candidates(
+                np.mean(
+                    np.abs(pitch_cqt[:, frame : frame + pitch_frames_per_window]), axis=1
+                ).tolist()
+            ),
+        )
+        for frame in range(0, pitch_cqt.shape[1], pitch_frames_per_window)
+    )
     frame_times = tuple(start_seconds + i * hop_length / sample_rate for i in range(len(rms) + 1))
-    quiet = _quiet_intervals(
+    low_energy = _low_energy_intervals(
         rms,
         frame_times,
         threshold=float(np.max(rms)) * 0.08,
@@ -246,6 +333,7 @@ def analyze_audio(
         onset_gaps=candidate_onset_gaps(clusters),
         beat_interval_windows=beat_interval_windows(absolute_beats, absolute_offset=0.0),
         chroma_windows=chroma_windows,
-        quiet_intervals=quiet,
+        pitch_evidence_windows=pitch_evidence_windows,
+        low_energy_intervals=low_energy,
     )
 
