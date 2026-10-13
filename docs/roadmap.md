@@ -17,6 +17,15 @@
 - Render faithful and transformed demonstrations.
 - Record errors and uncertainty instead of correcting results invisibly.
 
+### Listening Lab phase 1.1 — passage-aware evidence
+
+- Analyze a bounded passage (for the current performance, begin with 0–30 s).
+- Preserve raw onsets while adding configurable near-simultaneous attack clusters.
+- Report onset gaps, local beat-interval windows, time-varying chroma, and
+  low-energy intervals as candidates with timestamps—not as semantic labels.
+- Inspect these outputs against listening and score references before adding
+  motif, fermata, or phrase claims.
+
 ## Milestone 2 — Twenty-five-recording pilot
 
 Choose deliberately contrasting recordings that expose limitations: dense and
