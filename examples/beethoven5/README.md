@@ -34,8 +34,10 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Compare raw onset events with onset clusters; clusters are an aid for ensemble
   attacks and are not note transcriptions.
 - Review candidate inter-onset gaps and low-energy intervals manually; they are
-  not automatically labeled fermatas, phrase boundaries, or notated rests.
+  not automatically labeled fermatas, phrase boundaries, silence, or notated rests.
 - Compare two-second chroma windows to see harmonic/pitch-class evidence evolve.
+- Inspect short-window pitch candidates as relative salience evidence, not
+  transcribed notes; orchestral harmonics can produce plausible but incorrect peaks.
 - Inspect pulse-window interval spread to identify unstable or ambiguous pulse
   tracking around held notes.
 - Inspect beat estimates and document ambiguity around pauses and held notes.
