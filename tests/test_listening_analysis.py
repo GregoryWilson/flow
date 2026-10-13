@@ -1,8 +1,6 @@
 import unittest
 
-from flow.listening.analyze import (
-    strongest_pitch_candidates,
-)
+from flow.listening.analyze import _low_energy_intervals, strongest_pitch_candidates
 
 
 class ListeningAnalysisTests(unittest.TestCase):
@@ -18,6 +16,19 @@ class ListeningAnalysisTests(unittest.TestCase):
     def test_pitch_candidates_handle_empty_or_silent_window(self):
         self.assertEqual(strongest_pitch_candidates([]), ())
         self.assertEqual(strongest_pitch_candidates([0.0, 0.0, 0.0]), ())
+
+    def test_low_energy_intervals_return_candidates_without_silence_claim(self):
+        intervals = _low_energy_intervals(
+            [0.0, 0.05, 0.5, 0.0],
+            [0.0, 1.0, 2.0, 3.0, 4.0],
+            threshold=0.1,
+            minimum_seconds=1.0,
+        )
+        self.assertEqual(len(intervals), 2)
+        self.assertEqual(intervals[0]["start_seconds"], 0.0)
+        self.assertEqual(intervals[0]["end_seconds"], 2.0)
+        self.assertEqual(intervals[1]["start_seconds"], 3.0)
+        self.assertEqual(intervals[1]["end_seconds"], 4.0)
 
 if __name__ == "__main__":
     unittest.main()

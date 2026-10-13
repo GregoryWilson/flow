@@ -164,7 +164,7 @@ def _low_energy_intervals(
     for index, is_low_energy in enumerate(low_energy + [False]):
         if is_low_energy and start is None:
             start = index
-        elif not is_quiet and start is not None:
+        elif not is_low_energy and start is not None:
             end = min(index, len(frame_times) - 1)
             t0, t1 = float(frame_times[start]), float(frame_times[end])
             if t1 - t0 >= minimum_seconds:
@@ -182,7 +182,7 @@ def strongest_pitch_candidates(
     """Return local CQT peaks as relative pitch evidence, not note transcription."""
     if count < 1:
         raise ValueError("count must be at least 1")
-    if not salience:
+    if len(salience) == 0:
         return ()
 
     peak_indices = [
