@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "id": "score.beethoven5.movement1.opening.v1",
+  "title": "Beethoven Symphony No. 5, first movement opening motif",
+  "work": "Symphony No. 5 in C minor, Op. 67",
+  "movement": "I. Allegro con brio",
+  "meter": [2, 4],
+  "pitch_convention": "concert pitch",
+  "source": {
+    "title": "Symphony No. 5, Op. 67 (1809 score scan)",
+    "url": "https://commons.wikimedia.org/wiki/File:Symphony_No.5,_Op.67_(IA_imslp-no5-op67-beethoven-ludwig-van).pdf",
+    "publication_year": 1809,
+    "copyright_status": "public domain",
+    "notes": "Score facts are kept separate from audio-only measurements."
+  },
+  "events": [
+    {"role": "upper-motif", "beat": 0.0, "duration_beats": 0.5, "event_type": "rest"},
+    {"role": "upper-motif", "beat": 0.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 67, "pitch": "G4"},
+    {"role": "upper-motif", "beat": 1.0, "duration_beats": 0.5, "event_type": "note", "midi_note": 67, "pitch": "G4"},
+    {"role": "upper-motif", "beat": 1.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 67, "pitch": "G4"},
+    {"role": "upper-motif", "beat": 2.0, "duration_beats": 2.0, "event_type": "note", "midi_note": 63, "pitch": "D#4", "notated_as": "E-flat"},
+    {"role": "upper-motif", "beat": 4.0, "duration_beats": 0.5, "event_type": "rest"},
+    {"role": "upper-motif", "beat": 4.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 65, "pitch": "F4"},
+    {"role": "upper-motif", "beat": 5.0, "duration_beats": 0.5, "event_type": "note", "midi_note": 65, "pitch": "F4"},
+    {"role": "upper-motif", "beat": 5.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 65, "pitch": "F4"},
+    {"role": "upper-motif", "beat": 6.0, "duration_beats": 4.0, "event_type": "note", "midi_note": 62, "pitch": "D4", "tie_across_bar": true}
+  ],
+  "limitations": [
+    "Reference beats describe the score, not the timing of a particular performance.",
+    "Audio pitch candidates can be harmonics or accompaniment rather than the melody.",
+    "Onset detections in a full orchestral mix are not melody-specific note attacks."
+  ]
+}
