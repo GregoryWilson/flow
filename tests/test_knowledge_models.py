@@ -3,6 +3,7 @@ import unittest
 
 from flow.composer import beethoven_opening_recipe
 from flow.knowledge.models import MusicalEvent, Recipe
+from flow.listening import beat_interval_windows, candidate_onset_gaps, cluster_onsets
 
 
 class KnowledgeModelTests(unittest.TestCase):
@@ -31,6 +32,23 @@ class KnowledgeModelTests(unittest.TestCase):
     def test_event_rejects_non_positive_duration(self):
         with self.assertRaisesRegex(ValueError, "positive"):
             MusicalEvent("lead", 0, 0)
+
+    def test_onsets_are_clustered_without_losing_attack_count(self):
+        clusters = cluster_onsets([1.00, 1.03, 1.20, 2.00], merge_within_seconds=0.05)
+        self.assertEqual([cluster.event_count for cluster in clusters], [2, 1, 1])
+        self.assertAlmostEqual(clusters[0].center_seconds, 1.015)
+
+    def test_long_inter_onset_gaps_are_candidates(self):
+        clusters = cluster_onsets([0.0, 0.2, 0.4, 2.0, 2.2])
+        gaps = candidate_onset_gaps(clusters)
+        self.assertEqual(len(gaps), 1)
+        self.assertAlmostEqual(gaps[0]["duration_seconds"], 1.6)
+
+    def test_beat_windows_retain_large_intervals_as_evidence(self):
+        beats = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 5.5, 6, 6.5]
+        windows = beat_interval_windows(beats, beats_per_window=8)
+        self.assertEqual(len(windows), 2)
+        self.assertGreater(windows[0]["interval_spread_seconds"], 1.0)
 
 
 if __name__ == "__main__":

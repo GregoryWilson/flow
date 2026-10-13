@@ -1,7 +1,8 @@
-"""First-pass local audio measurement.
+"""Passage-aware local audio measurements.
 
-This module intentionally reports measurements, not musical intent. Later
-stages may cite these timestamped values when proposing interpretations.
+The analyzer reports signal evidence, not musical intent. In particular, an
+onset cluster is not a note transcription, and a low-energy interval is not
+proof of notated silence.
 """
 
 from __future__ import annotations
@@ -9,7 +10,22 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable, Sequence
+
+
+@dataclass(frozen=True, slots=True)
+class OnsetCluster:
+    start_seconds: float
+    end_seconds: float
+    center_seconds: float
+    event_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class TimeWindow:
+    start_seconds: float
+    end_seconds: float
+    values: tuple[float, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,22 +40,128 @@ class AnalysisResult:
     peak_rms: float
     mean_spectral_centroid_hz: float
     mean_chroma: tuple[float, ...]
-    analyzer: str = "flow-listening-baseline/0.1"
+    analyzed_start_seconds: float
+    analyzed_end_seconds: float
+    onset_clusters: tuple[OnsetCluster, ...]
+    onset_gaps: tuple[dict[str, float], ...]
+    beat_interval_windows: tuple[dict[str, float | int], ...]
+    chroma_windows: tuple[TimeWindow, ...]
+    quiet_intervals: tuple[dict[str, float], ...]
+    analyzer: str = "flow-listening-passage/0.2"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(self.to_dict(), indent=2) + "\n", encoding="utf-8")
 
 
-def analyze_audio(path: Path) -> AnalysisResult:
-    """Measure one local audio file using librosa.
+def cluster_onsets(onsets: Iterable[float], merge_within_seconds: float = 0.09) -> tuple[OnsetCluster, ...]:
+    """Group near-simultaneous attacks without deleting raw onset evidence."""
+    if merge_within_seconds < 0:
+        raise ValueError("merge_within_seconds cannot be negative")
+    ordered = sorted(float(value) for value in onsets)
+    if not ordered:
+        return ()
 
-    `librosa` is imported lazily so knowledge-model work and tests do not need
-    the heavier audio dependency set.
+    groups: list[list[float]] = [[ordered[0]]]
+    for value in ordered[1:]:
+        if value - groups[-1][-1] <= merge_within_seconds:
+            groups[-1].append(value)
+        else:
+            groups.append([value])
+
+    return tuple(
+        OnsetCluster(
+            start_seconds=group[0],
+            end_seconds=group[-1],
+            center_seconds=sum(group) / len(group),
+            event_count=len(group),
+        )
+        for group in groups
+    )
+
+
+def candidate_onset_gaps(
+    clusters: Sequence[OnsetCluster], *, minimum_seconds: float = 0.5, ratio: float = 1.8
+) -> tuple[dict[str, float], ...]:
+    """Return unusually long inter-onset gaps as candidates, not phrase labels."""
+    if len(clusters) < 3:
+        return ()
+    spacings = [b.center_seconds - a.center_seconds for a, b in zip(clusters, clusters[1:])]
+    baseline = sorted(spacings)[len(spacings) // 2]
+    threshold = max(minimum_seconds, baseline * ratio)
+    return tuple(
+        {
+            "start_seconds": left.center_seconds,
+            "end_seconds": right.center_seconds,
+            "duration_seconds": gap,
+        }
+        for left, right, gap in zip(clusters, clusters[1:], spacings)
+        if gap >= threshold
+    )
+
+
+def beat_interval_windows(
+    beat_seconds: Sequence[float], *, beats_per_window: int = 8, absolute_offset: float = 0.0
+) -> tuple[dict[str, float | int], ...]:
+    """Summarize local pulse rates from detected beat intervals.
+
+    Long intervals are deliberately retained: a fermata or missed beat should
+    appear as uncertainty/tempo drift rather than being silently normalized.
     """
+    if beats_per_window < 2:
+        raise ValueError("beats_per_window must be at least 2")
+    result: list[dict[str, float | int]] = []
+    for start in range(0, len(beat_seconds) - 1, beats_per_window):
+        part = beat_seconds[start : start + beats_per_window + 1]
+        if len(part) < 3:
+            continue
+        intervals = sorted(b - a for a, b in zip(part, part[1:]) if b > a)
+        if not intervals:
+            continue
+        middle = len(intervals) // 2
+        median = intervals[middle] if len(intervals) % 2 else (intervals[middle - 1] + intervals[middle]) / 2
+        result.append(
+            {
+                "start_seconds": absolute_offset + part[0],
+                "end_seconds": absolute_offset + part[-1],
+                "beat_count": len(part) - 1,
+                "median_interval_seconds": median,
+                "median_bpm": 60.0 / median,
+                "interval_spread_seconds": intervals[-1] - intervals[0],
+            }
+        )
+    return tuple(result)
 
+
+def _quiet_intervals(rms_values: Sequence[float], frame_times: Sequence[float], *, threshold: float,
+                     minimum_seconds: float) -> tuple[dict[str, float], ...]:
+    quiet = [float(value) <= threshold for value in rms_values]
+    intervals: list[dict[str, float]] = []
+    start: int | None = None
+    for index, is_quiet in enumerate(quiet + [False]):
+        if is_quiet and start is None:
+            start = index
+        elif not is_quiet and start is not None:
+            end = min(index, len(frame_times) - 1)
+            t0, t1 = float(frame_times[start]), float(frame_times[end])
+            if t1 - t0 >= minimum_seconds:
+                intervals.append({"start_seconds": t0, "end_seconds": t1, "duration_seconds": t1 - t0})
+            start = None
+    return tuple(intervals)
+
+
+def analyze_audio(
+    path: Path,
+    *,
+    start_seconds: float = 0.0,
+    duration_seconds: float | None = None,
+    onset_merge_seconds: float = 0.09,
+    chroma_window_seconds: float = 2.0,
+) -> AnalysisResult:
+    """Measure a local audio file or a bounded passage using librosa."""
     try:
         import librosa
         import numpy as np
@@ -48,34 +170,82 @@ def analyze_audio(path: Path) -> AnalysisResult:
 
     if not path.is_file():
         raise FileNotFoundError(path)
+    if start_seconds < 0:
+        raise ValueError("start_seconds cannot be negative")
+    if duration_seconds is not None and duration_seconds <= 0:
+        raise ValueError("duration_seconds must be positive")
+    if onset_merge_seconds < 0:
+        raise ValueError("onset_merge_seconds cannot be negative")
+    if chroma_window_seconds <= 0:
+        raise ValueError("chroma_window_seconds must be positive")
 
-    signal, sample_rate = librosa.load(path, sr=None, mono=True)
+    full_duration = float(librosa.get_duration(path=path))
+    if start_seconds >= full_duration:
+        raise ValueError("start_seconds is past the end of the recording")
+    available = full_duration - start_seconds
+    read_duration = min(duration_seconds, available) if duration_seconds is not None else available
+
+    signal, sample_rate = librosa.load(
+        path, sr=None, mono=True, offset=start_seconds, duration=read_duration
+    )
     if signal.size == 0:
         raise ValueError("audio file contains no samples")
 
-    onset_envelope = librosa.onset.onset_strength(y=signal, sr=sample_rate)
+    hop_length = 512
+    onset_envelope = librosa.onset.onset_strength(y=signal, sr=sample_rate, hop_length=hop_length)
     tempo, beat_frames = librosa.beat.beat_track(
-        onset_envelope=onset_envelope, sr=sample_rate
+        onset_envelope=onset_envelope, sr=sample_rate, hop_length=hop_length
     )
     onset_frames = librosa.onset.onset_detect(
-        onset_envelope=onset_envelope, sr=sample_rate
+        onset_envelope=onset_envelope, sr=sample_rate, hop_length=hop_length
     )
-    rms = librosa.feature.rms(y=signal)[0]
-    centroid = librosa.feature.spectral_centroid(y=signal, sr=sample_rate)[0]
-    chroma = librosa.feature.chroma_cqt(y=signal, sr=sample_rate)
+    rms = librosa.feature.rms(y=signal, hop_length=hop_length)[0]
+    centroid = librosa.feature.spectral_centroid(y=signal, sr=sample_rate, hop_length=hop_length)[0]
+    chroma = librosa.feature.chroma_cqt(y=signal, sr=sample_rate, hop_length=hop_length)
+
+    local_onsets = tuple(float(v) for v in librosa.frames_to_time(onset_frames, sr=sample_rate, hop_length=hop_length))
+    local_beats = tuple(float(v) for v in librosa.frames_to_time(beat_frames, sr=sample_rate, hop_length=hop_length))
+    absolute_onsets = tuple(start_seconds + value for value in local_onsets)
+    absolute_beats = tuple(start_seconds + value for value in local_beats)
+    clusters = cluster_onsets(absolute_onsets, onset_merge_seconds)
+
+    frames_per_window = max(1, round(chroma_window_seconds * sample_rate / hop_length))
+    chroma_windows = tuple(
+        TimeWindow(
+            start_seconds=start_seconds + frame * hop_length / sample_rate,
+            end_seconds=min(
+                start_seconds + len(signal) / sample_rate,
+                start_seconds + (frame + frames_per_window) * hop_length / sample_rate,
+            ),
+            values=tuple(float(value) for value in np.mean(chroma[:, frame : frame + frames_per_window], axis=1)),
+        )
+        for frame in range(0, chroma.shape[1], frames_per_window)
+    )
+    frame_times = tuple(start_seconds + i * hop_length / sample_rate for i in range(len(rms) + 1))
+    quiet = _quiet_intervals(
+        rms,
+        frame_times,
+        threshold=float(np.max(rms)) * 0.08,
+        minimum_seconds=0.2,
+    )
 
     return AnalysisResult(
         source_path=str(path.resolve()),
         sample_rate=int(sample_rate),
-        duration_seconds=float(librosa.get_duration(y=signal, sr=sample_rate)),
+        duration_seconds=full_duration,
         tempo_bpm=float(np.asarray(tempo).reshape(-1)[0]),
-        beat_seconds=tuple(float(v) for v in librosa.frames_to_time(beat_frames, sr=sample_rate)),
-        onset_seconds=tuple(
-            float(v) for v in librosa.frames_to_time(onset_frames, sr=sample_rate)
-        ),
+        beat_seconds=absolute_beats,
+        onset_seconds=absolute_onsets,
         mean_rms=float(np.mean(rms)),
         peak_rms=float(np.max(rms)),
         mean_spectral_centroid_hz=float(np.mean(centroid)),
         mean_chroma=tuple(float(v) for v in np.mean(chroma, axis=1)),
+        analyzed_start_seconds=start_seconds,
+        analyzed_end_seconds=start_seconds + len(signal) / sample_rate,
+        onset_clusters=clusters,
+        onset_gaps=candidate_onset_gaps(clusters),
+        beat_interval_windows=beat_interval_windows(absolute_beats, absolute_offset=0.0),
+        chroma_windows=chroma_windows,
+        quiet_intervals=quiet,
     )
 
