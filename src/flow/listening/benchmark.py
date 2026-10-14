@@ -108,6 +108,7 @@ def _rank_alignment_candidates(
     reference_groups: Sequence[Mapping[str, Any]],
     runs: Sequence[Mapping[str, Any]],
     *,
+    minimum_strength: float = 0.3,
     limit: int = 5,
     beam_width: int = 500,
 ) -> list[dict[str, Any]]:
@@ -204,16 +205,28 @@ def _rank_alignment_candidates(
             continue
         cost, seconds_per_beat, rate_cv, rms_beats = candidate_metrics
         matched_events = []
+        exact_pitch_support_count = 0
         for group, run_index in zip(reference_groups, path, strict=True):
             run = runs[run_index]
+            exact_pitch_supported = (
+                float(run["peak_exact_pitch_strength"]) >= minimum_strength
+            )
+            exact_pitch_support_count += int(exact_pitch_supported)
             matched_events.append({
                 "expected_pitch": group["pitch"],
                 "score_beat": float(group["start_beat"]),
+                "expected_attack_count": int(group["attack_count"]),
+                "expected_duration_beats": float(group["end_beat"])
+                - float(group["start_beat"]),
                 "observed_pitch_class": run["pitch_class_name"],
                 "observed_start_seconds": float(run["start_seconds"]),
                 "observed_end_seconds": float(run["end_seconds"]),
+                "observed_run_duration_seconds": (
+                    float(run["end_seconds"]) - float(run["start_seconds"])
+                ),
                 "peak_pitch_class_strength": float(run["peak_pitch_class_strength"]),
                 "peak_exact_pitch_strength": float(run["peak_exact_pitch_strength"]),
+                "expected_exact_pitch_supported": exact_pitch_supported,
                 "onset_cluster_count": int(run["onset_cluster_count"]),
             })
         skipped = sum(
@@ -231,6 +244,7 @@ def _rank_alignment_candidates(
             "audio_start_seconds": matched_events[0]["observed_start_seconds"],
             "audio_end_seconds": matched_events[-1]["observed_start_seconds"],
             "skipped_observed_run_count": skipped,
+            "exact_pitch_support_count": exact_pitch_support_count,
             "matched_events": matched_events,
         })
 
@@ -954,7 +968,9 @@ def compare_analysis_to_score(
         key=lambda path: sum(float(run["peak_pitch_class_strength"]) for run in path),
         default=[],
     )
-    alignment_candidates = _rank_alignment_candidates(reference_groups, runs)
+    alignment_candidates = _rank_alignment_candidates(
+        reference_groups, runs, minimum_strength=minimum_strength
+    )
 
     comparison: list[dict[str, Any]] = []
     for index, group in enumerate(reference_groups):
