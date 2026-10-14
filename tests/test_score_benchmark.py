@@ -3,6 +3,7 @@ import unittest
 from flow.listening.benchmark import (
     _score_beat_at_time,
     _score_context_at_beat,
+    _score_context_summary,
     _score_time_interval_diagnostic,
     _pitch_relationships_to_score,
     compare_analysis_to_score,
@@ -249,6 +250,20 @@ class ScoreBenchmarkTests(unittest.TestCase):
         )
         self.assertTrue(cello_relationship["same_pitch_class"])
         self.assertEqual(cello_relationship["octave_displacement"], 0)
+
+    def test_summarizes_rest_across_all_modeled_score_lanes(self):
+        contexts = [
+            {"type": "rest", "role": "upper-motif"},
+            {"type": "rest", "score_part": "Violas"},
+            {"type": "rest", "score_part": "Cellos"},
+        ]
+
+        summary = _score_context_summary(contexts)
+
+        self.assertEqual(summary["status"], "all_modeled_lanes_rest")
+        self.assertEqual(summary["note_lanes"], [])
+        self.assertEqual(summary["rest_lanes"], ["Cellos", "Violas", "upper-motif"])
+        self.assertEqual(summary["modeled_lane_count"], 3)
 
     def test_marks_score_positions_inside_stretched_timing_intervals(self):
         anchors = [
