@@ -8,6 +8,7 @@ from pathlib import Path
 
 from flow.composer import (
     beethoven_opening_recipe,
+    render_wav,
     rhythm_section_feature_recipe,
     write_midi,
 )
@@ -79,6 +80,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=60,
         help="MIDI note number for tonic C4 (60); example uses the natural minor scale",
     )
+
+    audio_demo = commands.add_parser(
+        "render-audio-demo",
+        help="render the focus-handoff recipe to a dependency-free WAV preview",
+    )
+    audio_demo.add_argument("--out", type=Path, default=Path("rhythm-section-demo.wav"))
+    audio_demo.add_argument("--tempo", type=float, default=120.0, help="quarter notes per minute")
+    audio_demo.add_argument("--tonic-midi", type=int, default=60, help="MIDI note for tonic C4")
+    audio_demo.add_argument("--sample-rate", type=int, default=44100)
     return parser
 
 
@@ -107,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
             tempo_bpm=args.tempo,
         )
         print(f"Wrote {len(notes)} MIDI note events to {args.out}")
+        return 0
+    if args.command == "render-audio-demo":
+        notes = render_wav(
+            rhythm_section_feature_recipe(),
+            args.out,
+            tonic_midi=args.tonic_midi,
+            tempo_bpm=args.tempo,
+            sample_rate=args.sample_rate,
+        )
+        print(f"Wrote {args.out} ({len(notes)} note events, {args.sample_rate} Hz mono WAV)")
         return 0
     if args.command == "compare-score":
         analysis = json.loads(args.analysis.read_text(encoding="utf-8"))
