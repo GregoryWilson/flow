@@ -71,3 +71,11 @@ percussion, harmony, or texture while the lead is absent. The first musical
 acceptance test is a coherent twenty-minute journey with meaningful
 development and uninterrupted performance.
 
+### Composition phase 1 — deterministic MIDI realization
+
+- Map relative scale degrees and role events to a selected tonic, tempo, and
+  General MIDI instruments.
+- Preserve role-specific rests and focus-driven dynamics when exporting.
+- Use a local DAW or synthesizer for playback; MIDI export does not embed
+  samples or claim to be the final real-time audio engine.
+
