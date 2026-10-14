@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "id": "score.beethoven5.movement1.measures18-21.voice-contrast.v1",
-  "title": "Beethoven Symphony No. 5, first movement, measures 18\u201321: voice-contrast passage",
+  "title": "Beethoven Symphony No. 5, first movement, measures 18–21: voice-contrast passage",
   "work": "Symphony No. 5 in C minor, Op. 67",
   "movement": "I. Allegro con brio",
   "meter": [
@@ -13,18 +13,18 @@
     18,
     21
   ],
-  "score_beat_origin": 34.0,
+  "score_beat_origin": 34,
   "pitch_convention": "MIDI pitches from score transcription; compare as written score evidence, not audio transcription",
   "source": {
     "title": "Symphony No. 5, Op. 67, first movement (Mutopia Project #941)",
     "url": "https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=941",
     "format": "public-domain full-orchestra LilyPond/MIDI transcription",
-    "notes": "The source listing identifies a full-orchestra score and MIDI. Dynamics are not encoded in the MIDI. Score track 05 and 06 retain neutral IDs because both MIDI instrument metadata labels them English Horn; confirm staff identity against the score before assigning instrument names."
+    "notes": "The source listing identifies a full-orchestra score and MIDI. Dynamics are not encoded in the MIDI. Score track 05 and 06 retain neutral IDs because both MIDI instrument metadata labels them English Horn; confirm staff identity against the score before assigning instrument names. Mutopia explicitly provides the material as-is and does not warrant its musical accuracy; treat these events as a candidate transcription and cross-check them against the published score before treating them as ground truth."
   },
   "events": [
     {
       "role": "score-note",
-      "beat": 0.0,
+      "beat": 0,
       "duration_beats": 0.5,
       "event_type": "note",
       "midi_note": 59,
@@ -40,7 +40,7 @@
     },
     {
       "role": "score-note",
-      "beat": 1.0,
+      "beat": 1,
       "duration_beats": 0.5,
       "event_type": "note",
       "midi_note": 59,
@@ -56,24 +56,24 @@
     },
     {
       "role": "score-note",
-      "beat": 2.0,
-      "duration_beats": 1.0,
+      "beat": 2,
+      "duration_beats": 1,
       "event_type": "note",
       "midi_note": 60,
       "pitch": "C4"
     },
     {
       "role": "score-note",
-      "beat": 4.0,
-      "duration_beats": 1.0,
+      "beat": 4,
+      "duration_beats": 1,
       "event_type": "note",
       "midi_note": 44,
       "pitch": "G#2"
     },
     {
       "role": "score-note",
-      "beat": 6.0,
-      "duration_beats": 1.0,
+      "beat": 6,
+      "duration_beats": 1,
       "event_type": "note",
       "midi_note": 43,
       "pitch": "G2"
@@ -100,7 +100,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 86,
@@ -108,7 +108,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 91,
@@ -132,40 +132,40 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 84,
         "pitch": "C6"
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 87,
         "pitch": "D#6"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 84,
         "pitch": "C6"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 83,
         "pitch": "B5"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 91,
         "pitch": "G6"
@@ -190,7 +190,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 74,
@@ -198,7 +198,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 79,
@@ -222,48 +222,48 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 72,
         "pitch": "C5"
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 75,
         "pitch": "D#5"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 78,
         "pitch": "F#5"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 72,
         "pitch": "C5"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 71,
         "pitch": "B4"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 79,
         "pitch": "G5"
@@ -288,7 +288,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 59,
@@ -296,7 +296,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 62,
@@ -320,48 +320,48 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 63,
         "pitch": "D#4"
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 67,
         "pitch": "G4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 60,
         "pitch": "C4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 66,
         "pitch": "F#4"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 62,
         "pitch": "D4"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 59,
         "pitch": "B3"
@@ -378,7 +378,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 67,
@@ -394,40 +394,40 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 67,
         "pitch": "G4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 63,
         "pitch": "D#4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 51,
         "pitch": "D#3"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 55,
         "pitch": "G3"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 67,
         "pitch": "G4"
@@ -452,7 +452,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 55,
@@ -460,7 +460,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 67,
@@ -484,48 +484,48 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 60,
         "pitch": "C4"
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 72,
         "pitch": "C5"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 60,
         "pitch": "C4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 72,
         "pitch": "C5"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 55,
         "pitch": "G3"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 67,
         "pitch": "G4"
@@ -542,7 +542,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 43,
@@ -558,24 +558,24 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 48,
         "pitch": "C3"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 48,
         "pitch": "C3"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 43,
         "pitch": "G2"
@@ -584,7 +584,7 @@
     "Violins I": [
       {
         "role": "score-note",
-        "beat": 0.0,
+        "beat": 0,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 74,
@@ -600,7 +600,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 79,
@@ -616,64 +616,64 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 75,
         "pitch": "D#5"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 57,
         "pitch": "A3"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 66,
         "pitch": "F#4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 72,
         "pitch": "C5"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 71,
         "pitch": "B4"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 62,
         "pitch": "D4"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 55,
         "pitch": "G3"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 2.0,
+        "beat": 6,
+        "duration_beats": 2,
         "event_type": "note",
         "midi_note": 79,
         "pitch": "G5"
@@ -682,7 +682,7 @@
     "Violins II": [
       {
         "role": "score-note",
-        "beat": 0.0,
+        "beat": 0,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 67,
@@ -698,7 +698,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 74,
@@ -714,72 +714,72 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 75,
         "pitch": "D#5"
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 67,
         "pitch": "G4"
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 60,
         "pitch": "C4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 57,
         "pitch": "A3"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 66,
         "pitch": "F#4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 72,
         "pitch": "C5"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 55,
         "pitch": "G3"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 62,
         "pitch": "D4"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 71,
         "pitch": "B4"
@@ -788,7 +788,7 @@
     "Violas": [
       {
         "role": "score-note",
-        "beat": 0.0,
+        "beat": 0,
         "duration_beats": 1.5,
         "event_type": "note",
         "midi_note": 67,
@@ -804,24 +804,24 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 63,
         "pitch": "D#4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 56,
         "pitch": "G#3"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 55,
         "pitch": "G3"
@@ -830,7 +830,7 @@
     "Cellos": [
       {
         "role": "score-note",
-        "beat": 0.0,
+        "beat": 0,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 59,
@@ -846,7 +846,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 59,
@@ -862,24 +862,24 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 60,
         "pitch": "C4"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 44,
         "pitch": "G#2"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 43,
         "pitch": "G2"
@@ -896,7 +896,7 @@
       },
       {
         "role": "score-note",
-        "beat": 1.0,
+        "beat": 1,
         "duration_beats": 0.5,
         "event_type": "note",
         "midi_note": 47,
@@ -912,24 +912,24 @@
       },
       {
         "role": "score-note",
-        "beat": 2.0,
-        "duration_beats": 1.0,
+        "beat": 2,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 48,
         "pitch": "C3"
       },
       {
         "role": "score-note",
-        "beat": 4.0,
-        "duration_beats": 1.0,
+        "beat": 4,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 44,
         "pitch": "G#2"
       },
       {
         "role": "score-note",
-        "beat": 6.0,
-        "duration_beats": 1.0,
+        "beat": 6,
+        "duration_beats": 1,
         "event_type": "note",
         "midi_note": 43,
         "pitch": "G2"
@@ -937,7 +937,7 @@
     ]
   },
   "part_activity": {
-    "scope": "measures 18\u201321; score-only event lanes from the machine-readable transcription",
+    "scope": "measures 18–21; score-only event lanes from the machine-readable transcription",
     "active_parts": [
       "Flutes",
       "Oboes",
@@ -956,6 +956,7 @@
     "notes": "Part events are score reference notes, not audio detections. Empty measure intervals are not inferred as rests. Two MIDI tracks keep neutral IDs because their instrument metadata does not match the orchestral staff labels."
   },
   "limitations": [
+    "The source's musical accuracy has not yet been independently checked note by note against the published score; validate this candidate transcription before using it as ground truth.",
     "Score is used only in post-analysis comparison; do not feed these events into audio-only analysis.",
     "The anchor lane is the bassoon score track and is repeated separately in part_events only if later explicitly added; it is excluded from part_events here to avoid double-counting in simultaneous stacks.",
     "Pitch and onset evidence from a mono recording remains whole-mix evidence and cannot identify which instrument produced a candidate.",
