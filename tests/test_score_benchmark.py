@@ -138,6 +138,65 @@ class ScoreBenchmarkTests(unittest.TestCase):
         self.assertAlmostEqual(evidence[0]["mean_relative_strength"], 0.6)
         self.assertTrue(any("harmonics" in limit for limit in result["interpretation_limits"]))
 
+    def test_compares_score_labeled_parts_without_consuming_shared_onsets(self):
+        reference = {
+            "id": "test.part-lanes",
+            "events": [
+                {"event_type": "note", "beat": 0, "duration_beats": 1, "midi_note": 67},
+                {"event_type": "note", "beat": 1, "duration_beats": 1, "midi_note": 63},
+            ],
+            "part_events": {
+                "Violas": [
+                    {"event_type": "note", "beat": 0, "duration_beats": 1, "midi_note": 55},
+                    {"event_type": "note", "beat": 1, "duration_beats": 1, "midi_note": 51},
+                ],
+                "Cellos": [
+                    {"event_type": "note", "beat": 0, "duration_beats": 1, "midi_note": 43},
+                    {"event_type": "note", "beat": 1, "duration_beats": 1, "midi_note": 39},
+                ],
+            },
+        }
+        analysis = {
+            "pitch_evidence_windows": [
+                {
+                    "start_seconds": 0.0,
+                    "end_seconds": 0.2,
+                    "candidates": [
+                        {"midi_note": 67, "relative_strength": 0.8},
+                        {"midi_note": 55, "relative_strength": 0.7},
+                        {"midi_note": 43, "relative_strength": 0.6},
+                    ],
+                },
+                {
+                    "start_seconds": 0.9,
+                    "end_seconds": 1.1,
+                    "candidates": [
+                        {"midi_note": 63, "relative_strength": 0.8},
+                        {"midi_note": 51, "relative_strength": 0.7},
+                        {"midi_note": 39, "relative_strength": 0.6},
+                    ],
+                },
+            ],
+            "onset_clusters": [
+                {"center_seconds": 0.02, "event_count": 1},
+                {"center_seconds": 1.02, "event_count": 1},
+            ],
+        }
+
+        result = compare_analysis_to_score(analysis, reference)
+        part_alignment = result["score_part_attack_alignment"]
+
+        self.assertEqual(part_alignment["parts"]["Violas"]["note_event_count"], 2)
+        self.assertEqual(part_alignment["parts"]["Violas"]["exact_pitch_supported_count"], 2)
+        self.assertEqual(len(part_alignment["simultaneous_part_events"]), 2)
+        first_stack = part_alignment["simultaneous_part_events"][0]
+        self.assertEqual(first_stack["score_part_count"], 3)
+        self.assertEqual(first_stack["distinct_score_pitch_count"], 3)
+        self.assertTrue(
+            all(note["exact_pitch_supported"] for note in first_stack["expected_pitches"])
+        )
+        self.assertIn("double the same note", " ".join(part_alignment["interpretation_limits"]))
+
     def test_aligns_individual_attacks_to_nearby_onset_and_pitch_evidence(self):
         reference = {
             "id": "test.attacks",

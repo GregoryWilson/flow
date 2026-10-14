@@ -40,8 +40,14 @@
   counts, and performance timestamps; keep it out of the audio-only result.
 - Pair whole-mix onset clusters with adjacent timestamped pitch windows so
   reviewers can inspect candidate pitches around each detected attack.
+- Compare each score-labeled part's note attacks against the same whole-mix
+  onset and pitch evidence; allow one observed attack to support doubled parts.
+- Report simultaneous score pitches by lane, while keeping missing or weak
+  pitch candidates visible instead of forcing every part to match.
 - Measure note and phrase accuracy against reviewed reference events before
   treating the analyzer as a source of reusable musical knowledge.
+- Add an audio-only multi-pitch/voice-separation method and evaluate it against
+  score-labeled parts only after this evidence baseline is stable.
 
 ## Milestone 2 — Twenty-five-recording pilot
 
