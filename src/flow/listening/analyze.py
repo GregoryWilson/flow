@@ -62,7 +62,7 @@ class AnalysisResult:
     chroma_windows: tuple[TimeWindow, ...]
     pitch_evidence_windows: tuple[PitchEvidenceWindow, ...]
     low_energy_intervals: tuple[dict[str, float], ...]
-    analyzer: str = "flow-listening-passage/0.3"
+    analyzer: str = "flow-listening-passage/0.4"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -213,6 +213,22 @@ def strongest_pitch_candidates(
     return tuple(result)
 
 
+def _window_frame_ranges(
+    frame_count: int, window_frames: int, hop_frames: int
+) -> tuple[tuple[int, int], ...]:
+    """Return overlapping analysis windows, retaining a final partial window."""
+    if frame_count < 0:
+        raise ValueError("frame_count cannot be negative")
+    if window_frames < 1:
+        raise ValueError("window_frames must be positive")
+    if hop_frames < 1:
+        raise ValueError("hop_frames must be positive")
+    return tuple(
+        (start, min(frame_count, start + window_frames))
+        for start in range(0, frame_count, hop_frames)
+    )
+
+
 def analyze_audio(
     path: Path,
     *,
@@ -221,6 +237,7 @@ def analyze_audio(
     onset_merge_seconds: float = 0.09,
     chroma_window_seconds: float = 2.0,
     pitch_window_seconds: float = 0.25,
+    pitch_hop_seconds: float = 0.05,
 ) -> AnalysisResult:
     """Measure a local audio file or a bounded passage using librosa."""
     try:
@@ -241,6 +258,8 @@ def analyze_audio(
         raise ValueError("chroma_window_seconds must be positive")
     if pitch_window_seconds <= 0:
         raise ValueError("pitch_window_seconds must be positive")
+    if pitch_hop_seconds <= 0:
+        raise ValueError("pitch_hop_seconds must be positive")
 
     full_duration = float(librosa.get_duration(path=path))
     if start_seconds >= full_duration:
@@ -293,20 +312,23 @@ def analyze_audio(
         for frame in range(0, chroma.shape[1], frames_per_window)
     )
     pitch_frames_per_window = max(1, round(pitch_window_seconds * sample_rate / hop_length))
+    pitch_frames_per_hop = max(1, round(pitch_hop_seconds * sample_rate / hop_length))
     pitch_evidence_windows = tuple(
         PitchEvidenceWindow(
-            start_seconds=start_seconds + frame * hop_length / sample_rate,
+            start_seconds=start_seconds + frame_start * hop_length / sample_rate,
             end_seconds=min(
                 start_seconds + len(signal) / sample_rate,
-                start_seconds + (frame + pitch_frames_per_window) * hop_length / sample_rate,
+                start_seconds + frame_end * hop_length / sample_rate,
             ),
             candidates=strongest_pitch_candidates(
                 np.mean(
-                    np.abs(pitch_cqt[:, frame : frame + pitch_frames_per_window]), axis=1
+                    np.abs(pitch_cqt[:, frame_start:frame_end]), axis=1
                 ).tolist()
             ),
         )
-        for frame in range(0, pitch_cqt.shape[1], pitch_frames_per_window)
+        for frame_start, frame_end in _window_frame_ranges(
+            pitch_cqt.shape[1], pitch_frames_per_window, pitch_frames_per_hop
+        )
     )
     frame_times = tuple(start_seconds + i * hop_length / sample_rate for i in range(len(rms) + 1))
     low_energy = _low_energy_intervals(
