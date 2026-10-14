@@ -25,6 +25,32 @@
     "resting_parts": ["Flutes", "Oboes", "Bassoons", "Horns", "Trumpets", "Timpani"],
     "notes": "Score-only activity annotation. Strings and clarinets share the motif; audio evidence cannot assign a detected note to one part."
   },
+  "part_events": {
+    "Violas": [
+      {"role": "motif-doubling", "beat": 0.0, "duration_beats": 0.5, "event_type": "rest"},
+      {"role": "motif-doubling", "beat": 0.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 55, "pitch": "G3"},
+      {"role": "motif-doubling", "beat": 1.0, "duration_beats": 0.5, "event_type": "note", "midi_note": 55, "pitch": "G3"},
+      {"role": "motif-doubling", "beat": 1.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 55, "pitch": "G3"},
+      {"role": "motif-doubling", "beat": 2.0, "duration_beats": 2.0, "event_type": "note", "midi_note": 51, "pitch": "D#3", "notated_as": "E-flat"},
+      {"role": "motif-doubling", "beat": 4.0, "duration_beats": 0.5, "event_type": "rest"},
+      {"role": "motif-doubling", "beat": 4.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 53, "pitch": "F3"},
+      {"role": "motif-doubling", "beat": 5.0, "duration_beats": 0.5, "event_type": "note", "midi_note": 53, "pitch": "F3"},
+      {"role": "motif-doubling", "beat": 5.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 53, "pitch": "F3"},
+      {"role": "motif-doubling", "beat": 6.0, "duration_beats": 4.0, "event_type": "note", "midi_note": 50, "pitch": "D3", "tie_across_bar": true}
+    ],
+    "Cellos": [
+      {"role": "motif-doubling", "beat": 0.0, "duration_beats": 0.5, "event_type": "rest"},
+      {"role": "motif-doubling", "beat": 0.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 43, "pitch": "G2"},
+      {"role": "motif-doubling", "beat": 1.0, "duration_beats": 0.5, "event_type": "note", "midi_note": 43, "pitch": "G2"},
+      {"role": "motif-doubling", "beat": 1.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 43, "pitch": "G2"},
+      {"role": "motif-doubling", "beat": 2.0, "duration_beats": 2.0, "event_type": "note", "midi_note": 39, "pitch": "D#2", "notated_as": "E-flat"},
+      {"role": "motif-doubling", "beat": 4.0, "duration_beats": 0.5, "event_type": "rest"},
+      {"role": "motif-doubling", "beat": 4.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 41, "pitch": "F2"},
+      {"role": "motif-doubling", "beat": 5.0, "duration_beats": 0.5, "event_type": "note", "midi_note": 41, "pitch": "F2"},
+      {"role": "motif-doubling", "beat": 5.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 41, "pitch": "F2"},
+      {"role": "motif-doubling", "beat": 6.0, "duration_beats": 4.0, "event_type": "note", "midi_note": 38, "pitch": "D2", "tie_across_bar": true}
+    ]
+  },
   "events": [
     {"role": "upper-motif", "beat": 0.0, "duration_beats": 0.5, "event_type": "rest"},
     {"role": "upper-motif", "beat": 0.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 67, "pitch": "G4"},

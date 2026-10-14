@@ -274,15 +274,20 @@ def _score_time_interval_diagnostic(
 
 
 def _score_context_at_beat(
-    beat: float | None, events: Sequence[Mapping[str, Any]]
+    beat: float | None,
+    events: Sequence[Mapping[str, Any]],
+    part_events: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Describe all reference events at an inferred beat without naming a source."""
+    """Describe active reference events at an inferred beat, including scored parts."""
     if beat is None:
         return [{"type": "unmapped"}]
 
+    scored_events = [(None, event) for event in events]
+    for part, part_sequence in (part_events or {}).items():
+        scored_events.extend((part, event) for event in part_sequence)
     active = [
-        event
-        for event in events
+        (part, event)
+        for part, event in scored_events
         if float(event["beat"]) <= beat
         < float(event["beat"]) + float(event["duration_beats"])
     ]
@@ -290,7 +295,7 @@ def _score_context_at_beat(
         return [{"type": "outside_reference"}]
 
     contexts = []
-    for event in active:
+    for part, event in active:
         start_beat = float(event["beat"])
         event_type = event.get("event_type", "note")
         context = {
@@ -299,6 +304,8 @@ def _score_context_at_beat(
             "event_start_beat": start_beat,
             "offset_from_event_start_beats": beat - start_beat,
         }
+        if part is not None:
+            context["score_part"] = part
         if event_type == "note":
             context["pitch"] = event.get("pitch", _pitch_label(int(event["midi_note"])))
             context["midi_note"] = int(event["midi_note"])
@@ -317,15 +324,16 @@ def _pitch_relationships_to_score(
         score_midi = int(context["midi_note"])
         interval = midi_note - score_midi
         same_pitch_class = midi_note % 12 == score_midi % 12
-        relationships.append(
-            {
-                "score_role": context.get("role"),
-                "score_pitch": context.get("pitch", _pitch_label(score_midi)),
-                "semitone_interval_from_score": interval,
-                "same_pitch_class": same_pitch_class,
-                "octave_displacement": interval // 12 if same_pitch_class else None,
-            }
-        )
+        relationship = {
+            "score_role": context.get("role"),
+            "score_pitch": context.get("pitch", _pitch_label(score_midi)),
+            "semitone_interval_from_score": interval,
+            "same_pitch_class": same_pitch_class,
+            "octave_displacement": interval // 12 if same_pitch_class else None,
+        }
+        if context.get("score_part") is not None:
+            relationship["score_part"] = context["score_part"]
+        relationships.append(relationship)
     return relationships
 
 
@@ -470,7 +478,9 @@ def _score_attack_alignment(
             )
             score_beat = _score_beat_at_time(center, anchors)
             score_contexts = _score_context_at_beat(
-                score_beat, reference.get("events", [])
+                score_beat,
+                reference.get("events", []),
+                reference.get("part_events", {}),
             )
             time_map = _score_time_interval_diagnostic(center, anchors)
             unassigned_onsets.append(

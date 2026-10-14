@@ -221,6 +221,35 @@ class ScoreBenchmarkTests(unittest.TestCase):
             _score_context_at_beat(-0.1, events)[0]["type"], "outside_reference"
         )
 
+    def test_includes_lower_scored_parts_in_unassigned_onset_context(self):
+        melody = [
+            {"event_type": "note", "beat": 0.5, "duration_beats": 1.5,
+             "midi_note": 67, "pitch": "G4", "role": "upper-motif"}
+        ]
+        parts = {
+            "Violas": [
+                {"event_type": "note", "beat": 0.5, "duration_beats": 1.5,
+                 "midi_note": 55, "pitch": "G3", "role": "motif-doubling"}
+            ],
+            "Cellos": [
+                {"event_type": "note", "beat": 0.5, "duration_beats": 1.5,
+                 "midi_note": 43, "pitch": "G2", "role": "motif-doubling"}
+            ],
+        }
+
+        contexts = _score_context_at_beat(1.0, melody, parts)
+        self.assertEqual(
+            [(context.get("score_part"), context["pitch"]) for context in contexts],
+            [(None, "G4"), ("Violas", "G3"), ("Cellos", "G2")],
+        )
+        cello_relationship = next(
+            relationship
+            for relationship in _pitch_relationships_to_score(43, contexts)
+            if relationship.get("score_part") == "Cellos"
+        )
+        self.assertTrue(cello_relationship["same_pitch_class"])
+        self.assertEqual(cello_relationship["octave_displacement"], 0)
+
     def test_marks_score_positions_inside_stretched_timing_intervals(self):
         anchors = [
             {"score_beat": 0, "audio_seconds": 0, "pitch": "C4"},
