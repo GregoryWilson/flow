@@ -69,6 +69,9 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Check each nearby candidate's `score_pitch_relationships` for pitch-class or
   octave compatibility with those score notes. Octave matches can come from
   harmonics or doubled parts and do not identify an instrument.
+- Check `score_time_map` before interpreting an estimated beat. Intervals at
+  least 1.4 times the passage median are flagged as stretched; fermatas and
+  expressive holds can make positions inside them uncertain.
 - Inspect onset-adjacent pitch candidates with `flow inspect-onsets`; clusters
   and pitch candidates are whole-mix evidence, not source-separated note attacks.
 - Compare chroma evidence with the score only after audio-only output is saved.

@@ -3,6 +3,7 @@ import unittest
 from flow.listening.benchmark import (
     _score_beat_at_time,
     _score_context_at_beat,
+    _score_time_interval_diagnostic,
     _pitch_relationships_to_score,
     compare_analysis_to_score,
 )
@@ -219,6 +220,23 @@ class ScoreBenchmarkTests(unittest.TestCase):
         self.assertEqual(
             _score_context_at_beat(-0.1, events)[0]["type"], "outside_reference"
         )
+
+    def test_marks_score_positions_inside_stretched_timing_intervals(self):
+        anchors = [
+            {"score_beat": 0, "audio_seconds": 0, "pitch": "C4"},
+            {"score_beat": 1, "audio_seconds": 1, "pitch": "D4"},
+            {"score_beat": 2, "audio_seconds": 2.5, "pitch": "E4"},
+            {"score_beat": 3, "audio_seconds": 3.5, "pitch": "F4"},
+        ]
+
+        result = _score_time_interval_diagnostic(2.0, anchors)
+
+        self.assertEqual(result["status"], "stretched")
+        self.assertEqual(result["interval_start_beat"], 1.0)
+        self.assertEqual(result["interval_end_beat"], 2.0)
+        self.assertAlmostEqual(result["stretch_ratio"], 1.5)
+        self.assertEqual(result["from_pitch"], "D4")
+        self.assertEqual(result["to_pitch"], "E4")
 
 
 if __name__ == "__main__":

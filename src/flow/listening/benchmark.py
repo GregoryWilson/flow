@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from statistics import median
 from typing import Any
 
 
 PITCH_CLASS_NAMES = ("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+SCORE_TIME_STRETCH_THRESHOLD = 1.4
 
 
 def _reference_groups(reference: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -220,6 +222,57 @@ def _score_beat_at_time(
     return None
 
 
+def _score_time_interval_diagnostic(
+    seconds: float, anchors: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Flag score-time intervals stretched relative to the passage's median."""
+    intervals = [
+        {
+            "start": left,
+            "end": right,
+            "seconds_per_score_beat": (
+                float(right["audio_seconds"]) - float(left["audio_seconds"])
+            )
+            / (float(right["score_beat"]) - float(left["score_beat"])),
+        }
+        for left, right in zip(anchors, anchors[1:])
+        if float(right["score_beat"]) > float(left["score_beat"])
+        and float(right["audio_seconds"]) > float(left["audio_seconds"])
+    ]
+    selected = next(
+        (
+            interval
+            for interval in intervals
+            if float(interval["start"]["audio_seconds"])
+            <= seconds
+            <= float(interval["end"]["audio_seconds"])
+        ),
+        None,
+    )
+    if selected is None:
+        return {"status": "unmapped"}
+
+    typical_seconds_per_beat = median(
+        interval["seconds_per_score_beat"] for interval in intervals
+    )
+    stretch_ratio = selected["seconds_per_score_beat"] / typical_seconds_per_beat
+    return {
+        "status": (
+            "stretched"
+            if stretch_ratio >= SCORE_TIME_STRETCH_THRESHOLD
+            else "typical"
+        ),
+        "interval_start_beat": float(selected["start"]["score_beat"]),
+        "interval_end_beat": float(selected["end"]["score_beat"]),
+        "seconds_per_score_beat": selected["seconds_per_score_beat"],
+        "passage_median_seconds_per_score_beat": typical_seconds_per_beat,
+        "stretch_ratio": stretch_ratio,
+        "stretch_threshold_ratio": SCORE_TIME_STRETCH_THRESHOLD,
+        "from_pitch": selected["start"].get("pitch"),
+        "to_pitch": selected["end"].get("pitch"),
+    }
+
+
 def _score_context_at_beat(
     beat: float | None, events: Sequence[Mapping[str, Any]]
 ) -> list[dict[str, Any]]:
@@ -419,11 +472,13 @@ def _score_attack_alignment(
             score_contexts = _score_context_at_beat(
                 score_beat, reference.get("events", [])
             )
+            time_map = _score_time_interval_diagnostic(center, anchors)
             unassigned_onsets.append(
                 {
                     "onset_seconds": center,
                     "whole_mix_event_count": int(cluster.get("event_count", 1)),
                     "estimated_score_beat": score_beat,
+                    "score_time_map": time_map,
                     "score_contexts": score_contexts,
                     "nearest_score_attack_pitch": nearest_attack["expected_pitch"],
                     "nearest_score_attack_delta_seconds": (
@@ -461,6 +516,7 @@ def _score_attack_alignment(
             "Pitch windows overlap in time and can smear attacks across neighboring notes.",
             "Unassigned onsets may be other scored parts, subdivisions, or detector errors.",
             "Estimated score context for unmatched onsets is interpolated from coarse anchors and is not a precise rhythmic transcription.",
+            "Score positions inside stretched timing intervals are especially uncertain and may include fermatas or performance holds.",
             "Pitch-class and octave relationships to score context show compatibility only; octave matches may be harmonics or instrument doublings.",
             "Attacks outside measured score-beat anchors have no predicted time.",
         ],
