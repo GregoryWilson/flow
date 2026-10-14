@@ -101,6 +101,48 @@ def _observed_runs(
     return runs
 
 
+def _pitch_label(midi_note: int) -> str:
+    pitch_class = midi_note % 12
+    octave = midi_note // 12 - 1
+    return f"{PITCH_CLASS_NAMES[pitch_class]}{octave}"
+
+
+def _register_evidence_for_run(
+    windows: Sequence[Mapping[str, Any]], run: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    """Summarize exact MIDI candidates supporting a pitch-class run by octave."""
+    pitch_class = int(run["pitch_class"])
+    overlapping = [
+        window
+        for window in windows
+        if float(window["start_seconds"]) < float(run["end_seconds"])
+        and float(window["end_seconds"]) > float(run["start_seconds"])
+    ]
+    strengths_by_midi: dict[int, list[float]] = {}
+    for window in overlapping:
+        candidates = {
+            int(candidate["midi_note"]): float(candidate["relative_strength"])
+            for candidate in window.get("candidates", [])
+            if int(candidate["midi_note"]) % 12 == pitch_class
+        }
+        for midi_note in set(strengths_by_midi) | set(candidates):
+            strengths_by_midi.setdefault(midi_note, []).append(candidates.get(midi_note, 0.0))
+
+    return [
+        {
+            "midi_note": midi_note,
+            "pitch": _pitch_label(midi_note),
+            "candidate_window_count": sum(value > 0 for value in strengths),
+            "overlapping_window_count": len(overlapping),
+            "peak_relative_strength": max(strengths, default=0.0),
+            "mean_relative_strength": (
+                sum(strengths) / len(overlapping) if overlapping else 0.0
+            ),
+        }
+        for midi_note, strengths in sorted(strengths_by_midi.items())
+    ]
+
+
 def compare_analysis_to_score(
     analysis: Mapping[str, Any],
     reference: Mapping[str, Any],
@@ -157,6 +199,13 @@ def compare_analysis_to_score(
                 "whole_mix_onset_cluster_count": (
                     matched_run["onset_cluster_count"] if matched_run else None
                 ),
+                "register_evidence": (
+                    _register_evidence_for_run(
+                        analysis.get("pitch_evidence_windows", []), matched_run
+                    )
+                    if matched_run
+                    else []
+                ),
             }
         )
 
@@ -169,8 +218,9 @@ def compare_analysis_to_score(
         "comparison": comparison,
         "observed_runs": runs,
         "interpretation_limits": [
-            "Relative strength is normalized within each pitch-evidence window; it is not probability.",
-            "Pitch-class matches may come from bass, accompaniment, or harmonics rather than the melody.",
+            "Relative strength is normalized per window; it is not probability.",
+            "Pitch-class matches may come from accompaniment or harmonics, not melody.",
+            "Register candidates are whole-mix salience; octave matches may be harmonics.",
             "Whole-mix onset counts cannot confirm repeated attacks in the melody part.",
             "Observed seconds are performance evidence and are not aligned to score beats.",
         ],
