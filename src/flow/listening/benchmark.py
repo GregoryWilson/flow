@@ -311,15 +311,72 @@ def _score_attack_alignment(
             }
         )
 
+    timed_attacks = [attack for attack in attacks if attack["predicted_audio_seconds"] is not None]
+    coverage_start = min(
+        (float(attack["predicted_audio_seconds"]) for attack in timed_attacks), default=None
+    )
+    coverage_end = max(
+        (float(attack["predicted_audio_seconds"]) for attack in timed_attacks), default=None
+    )
+    unassigned_onsets = []
+    if coverage_start is not None and coverage_end is not None:
+        for index, cluster in enumerate(clusters):
+            center = float(cluster["center_seconds"])
+            if index in used_cluster_indexes or not coverage_start <= center <= coverage_end:
+                continue
+            nearby_windows = [
+                window
+                for window in windows
+                if float(window["end_seconds"]) >= center - 0.1
+                and float(window["start_seconds"]) <= center + 0.15
+            ]
+            candidate_strengths: dict[int, list[float]] = {}
+            for window in nearby_windows:
+                for candidate in window.get("candidates", []):
+                    midi = int(candidate["midi_note"])
+                    candidate_strengths.setdefault(midi, []).append(
+                        float(candidate["relative_strength"])
+                    )
+            nearest_attack = min(
+                timed_attacks,
+                key=lambda attack: abs(float(attack["predicted_audio_seconds"]) - center),
+            )
+            unassigned_onsets.append(
+                {
+                    "onset_seconds": center,
+                    "whole_mix_event_count": int(cluster.get("event_count", 1)),
+                    "nearest_score_attack_pitch": nearest_attack["expected_pitch"],
+                    "nearest_score_attack_delta_seconds": (
+                        center - float(nearest_attack["predicted_audio_seconds"])
+                    ),
+                    "nearby_pitch_candidates": [
+                        {
+                            "midi_note": midi,
+                            "pitch": _pitch_label(midi),
+                            "peak_relative_strength": max(strengths),
+                            "candidate_window_count": len(strengths),
+                        }
+                        for midi, strengths in sorted(
+                            candidate_strengths.items(),
+                            key=lambda item: max(item[1]),
+                            reverse=True,
+                        )[:8]
+                    ],
+                }
+            )
+
     return {
         "method": "piecewise score-beat interpolation with nearest unused onset and local pitch windows",
         "onset_tolerance_seconds": onset_tolerance_seconds,
         "minimum_pitch_strength": minimum_strength,
         "attacks": attacks,
+        "unassigned_onset_scope_seconds": [coverage_start, coverage_end],
+        "unassigned_onsets": unassigned_onsets,
         "limitations": [
             "Onset clusters summarize the whole mix and may represent several instruments.",
             "Pitch salience near an onset is supporting evidence, not proof of its source.",
             "Pitch windows overlap in time and can smear attacks across neighboring notes.",
+            "Unassigned onsets may be other scored parts, subdivisions, or detector errors.",
             "Attacks outside measured score-beat anchors have no predicted time.",
         ],
     }
