@@ -1,6 +1,10 @@
 import unittest
 
-from flow.listening.benchmark import compare_analysis_to_score
+from flow.listening.benchmark import (
+    _score_beat_at_time,
+    _score_context_at_beat,
+    compare_analysis_to_score,
+)
 
 
 class ScoreBenchmarkTests(unittest.TestCase):
@@ -181,6 +185,29 @@ class ScoreBenchmarkTests(unittest.TestCase):
         self.assertEqual(len(unassigned), 1)
         self.assertAlmostEqual(unassigned[0]["onset_seconds"], 1.4)
         self.assertEqual(unassigned[0]["nearby_pitch_candidates"][0]["pitch"], "E4")
+        self.assertAlmostEqual(unassigned[0]["estimated_score_beat"], 0.5)
+        self.assertEqual(unassigned[0]["score_context"]["type"], "sustained_note")
+
+    def test_maps_unassigned_onsets_to_score_rest_or_sustain(self):
+        anchors = [
+            {"score_beat": 0, "audio_seconds": 1},
+            {"score_beat": 4, "audio_seconds": 5},
+        ]
+        events = [
+            {"event_type": "note", "beat": 0, "duration_beats": 1,
+             "midi_note": 60, "pitch": "C4", "role": "melody"},
+            {"event_type": "rest", "beat": 1, "duration_beats": 1,
+             "role": "melody"},
+            {"event_type": "note", "beat": 2, "duration_beats": 2,
+             "midi_note": 62, "pitch": "D4", "role": "melody"},
+        ]
+
+        self.assertEqual(_score_beat_at_time(2.5, anchors), 1.5)
+        self.assertEqual(_score_context_at_beat(1.5, events)["type"], "rest")
+        sustain = _score_context_at_beat(3.0, events)
+        self.assertEqual(sustain["type"], "sustained_note")
+        self.assertEqual(sustain["pitch"], "D4")
+        self.assertEqual(_score_context_at_beat(-0.1, events)["type"], "outside_reference")
 
 
 if __name__ == "__main__":

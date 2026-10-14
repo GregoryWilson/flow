@@ -62,6 +62,10 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Review `score_attack_alignment.unassigned_onsets` for mix events inside the
   reference's attack span that were not paired with a motif note. Treat these
   as follow-up candidates for other scored parts or detector review.
+- Review each unmatched event's `estimated_score_beat` and `score_context` to
+  see whether it maps near the motif's notes or into a notated rest. The beat is
+  interpolated from coarse audio anchors and is a diagnostic, not precise
+  rhythmic transcription or proof of a fill.
 - Inspect onset-adjacent pitch candidates with `flow inspect-onsets`; clusters
   and pitch candidates are whole-mix evidence, not source-separated note attacks.
 - Compare chroma evidence with the score only after audio-only output is saved.

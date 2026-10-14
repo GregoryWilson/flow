@@ -202,6 +202,55 @@ def _time_at_score_beat(
     return None
 
 
+def _score_beat_at_time(
+    seconds: float, anchors: Sequence[Mapping[str, Any]]
+) -> float | None:
+    """Invert the measured piecewise beat map inside anchor coverage only."""
+    for left, right in zip(anchors, anchors[1:]):
+        left_time = float(left["audio_seconds"])
+        right_time = float(right["audio_seconds"])
+        if left_time <= seconds <= right_time and right_time > left_time:
+            left_beat = float(left["score_beat"])
+            right_beat = float(right["score_beat"])
+            return left_beat + (seconds - left_time) * (right_beat - left_beat) / (
+                right_time - left_time
+            )
+    if anchors and seconds == float(anchors[-1]["audio_seconds"]):
+        return float(anchors[-1]["score_beat"])
+    return None
+
+
+def _score_context_at_beat(
+    beat: float | None, events: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Describe the reference event at an inferred beat without naming a source."""
+    if beat is None:
+        return {"type": "unmapped"}
+
+    active = [
+        event
+        for event in events
+        if float(event["beat"]) <= beat
+        < float(event["beat"]) + float(event["duration_beats"])
+    ]
+    if not active:
+        return {"type": "outside_reference"}
+
+    event = active[0]
+    start_beat = float(event["beat"])
+    event_type = event.get("event_type", "note")
+    context = {
+        "type": "rest" if event_type == "rest" else "sustained_note",
+        "role": event.get("role"),
+        "event_start_beat": start_beat,
+        "offset_from_event_start_beats": beat - start_beat,
+    }
+    if event_type == "note":
+        context["pitch"] = event.get("pitch", _pitch_label(int(event["midi_note"])))
+        context["midi_note"] = int(event["midi_note"])
+    return context
+
+
 def _score_attack_alignment(
     reference: Mapping[str, Any],
     analysis: Mapping[str, Any],
@@ -341,10 +390,16 @@ def _score_attack_alignment(
                 timed_attacks,
                 key=lambda attack: abs(float(attack["predicted_audio_seconds"]) - center),
             )
+            score_beat = _score_beat_at_time(center, anchors)
+            score_context = _score_context_at_beat(
+                score_beat, reference.get("events", [])
+            )
             unassigned_onsets.append(
                 {
                     "onset_seconds": center,
                     "whole_mix_event_count": int(cluster.get("event_count", 1)),
+                    "estimated_score_beat": score_beat,
+                    "score_context": score_context,
                     "nearest_score_attack_pitch": nearest_attack["expected_pitch"],
                     "nearest_score_attack_delta_seconds": (
                         center - float(nearest_attack["predicted_audio_seconds"])
@@ -377,6 +432,7 @@ def _score_attack_alignment(
             "Pitch salience near an onset is supporting evidence, not proof of its source.",
             "Pitch windows overlap in time and can smear attacks across neighboring notes.",
             "Unassigned onsets may be other scored parts, subdivisions, or detector errors.",
+            "Estimated score context for unmatched onsets is interpolated from coarse anchors and is not a precise rhythmic transcription.",
             "Attacks outside measured score-beat anchors have no predicted time.",
         ],
     }
