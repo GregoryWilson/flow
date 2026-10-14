@@ -8,6 +8,7 @@ from pathlib import Path
 
 from flow.composer import beethoven_opening_recipe
 from flow.listening.benchmark import compare_analysis_to_score
+from flow.listening.onset_review import inspect_onset_pitch_evidence
 from flow.listening import analyze_audio
 
 
@@ -40,6 +41,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     compare.add_argument("--out", type=Path, default=Path("score-comparison.json"))
     compare.add_argument("--minimum-strength", type=float, default=0.3)
+
+    onset_review = commands.add_parser(
+        "inspect-onsets", help="pair saved onset clusters with nearby pitch evidence"
+    )
+    onset_review.add_argument("analysis", type=Path, help="JSON output from flow analyze")
+    onset_review.add_argument("--out", type=Path, default=Path("onset-pitch-review.json"))
+    onset_review.add_argument("--before", type=float, default=0.1, help="seconds before each onset")
+    onset_review.add_argument("--after", type=float, default=0.3, help="seconds after each onset")
 
     seed = commands.add_parser(
         "init-beethoven", help="write the score-informed opening motif recipe"
@@ -76,6 +85,15 @@ def main(argv: list[str] | None = None) -> int:
         args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
         status = "found" if result["ordered_pitch_class_sequence_found"] else "not found"
         print(f"Ordered pitch-class sequence {status}; wrote comparison to {args.out}")
+        return 0
+    if args.command == "inspect-onsets":
+        analysis = json.loads(args.analysis.read_text(encoding="utf-8"))
+        result = inspect_onset_pitch_evidence(
+            analysis, before_seconds=args.before, after_seconds=args.after
+        )
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        print(f"Reviewed {result['onset_count']} onset clusters; wrote {args.out}")
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
 
