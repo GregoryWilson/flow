@@ -222,10 +222,10 @@ def _score_beat_at_time(
 
 def _score_context_at_beat(
     beat: float | None, events: Sequence[Mapping[str, Any]]
-) -> dict[str, Any]:
-    """Describe the reference event at an inferred beat without naming a source."""
+) -> list[dict[str, Any]]:
+    """Describe all reference events at an inferred beat without naming a source."""
     if beat is None:
-        return {"type": "unmapped"}
+        return [{"type": "unmapped"}]
 
     active = [
         event
@@ -234,21 +234,23 @@ def _score_context_at_beat(
         < float(event["beat"]) + float(event["duration_beats"])
     ]
     if not active:
-        return {"type": "outside_reference"}
+        return [{"type": "outside_reference"}]
 
-    event = active[0]
-    start_beat = float(event["beat"])
-    event_type = event.get("event_type", "note")
-    context = {
-        "type": "rest" if event_type == "rest" else "sustained_note",
-        "role": event.get("role"),
-        "event_start_beat": start_beat,
-        "offset_from_event_start_beats": beat - start_beat,
-    }
-    if event_type == "note":
-        context["pitch"] = event.get("pitch", _pitch_label(int(event["midi_note"])))
-        context["midi_note"] = int(event["midi_note"])
-    return context
+    contexts = []
+    for event in active:
+        start_beat = float(event["beat"])
+        event_type = event.get("event_type", "note")
+        context = {
+            "type": "rest" if event_type == "rest" else "note_duration",
+            "role": event.get("role"),
+            "event_start_beat": start_beat,
+            "offset_from_event_start_beats": beat - start_beat,
+        }
+        if event_type == "note":
+            context["pitch"] = event.get("pitch", _pitch_label(int(event["midi_note"])))
+            context["midi_note"] = int(event["midi_note"])
+        contexts.append(context)
+    return contexts
 
 
 def _score_attack_alignment(
@@ -399,7 +401,7 @@ def _score_attack_alignment(
                     "onset_seconds": center,
                     "whole_mix_event_count": int(cluster.get("event_count", 1)),
                     "estimated_score_beat": score_beat,
-                    "score_context": score_context,
+                    "score_contexts": score_context,
                     "nearest_score_attack_pitch": nearest_attack["expected_pitch"],
                     "nearest_score_attack_delta_seconds": (
                         center - float(nearest_attack["predicted_audio_seconds"])
