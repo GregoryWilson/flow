@@ -29,6 +29,8 @@
 ### Listening Lab phase 1.2 — phrase and pitch evidence
 
 - Add short-window CQT pitch candidates with timestamps and relative strengths.
+- Sample overlapping pitch windows at a finer hop so nearby onset events can be
+  reviewed without treating a coarse pitch window as one note attack.
 - Keep candidates explicitly separate from note transcription and score facts;
   ensemble harmonics and orchestration can make the strongest bin misleading.
 - Call RMS threshold spans low-energy intervals, never silence or rests.
