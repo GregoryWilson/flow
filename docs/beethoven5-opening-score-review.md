@@ -42,6 +42,8 @@ The unassigned-onset report now maps each event's time back through the same coa
 
 Nearby pitch candidates are also compared with the score pitches at that estimated beat. Same-pitch-class and octave relationships can show that a low candidate is compatible with a scored motif tone. They cannot distinguish an instrument doubling from a harmonic or another source in the mix.
 
+Because a fermata can stretch the time between two pitch-run anchors, unmatched events now carry a `score_time_map` diagnostic. It compares the interval's seconds per score beat with the passage median and flags ratios of 1.4 or greater as stretched. This is a warning that linear beat interpolation may be unreliable; it does not identify a fermata by itself.
+
 ## Limits
 
 This is a small, manually reviewed opening passage, not a general score transcription benchmark. The existing analyzer reports pitch salience and whole-mix onset clusters; it does not separate sources, identify instruments, or prove which layer produced a pitch. Score-assisted results should remain separate from the audio-only report so the reference cannot leak into discovery.
