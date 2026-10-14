@@ -43,6 +43,20 @@ class PitchEvidenceWindow:
 
 
 @dataclass(frozen=True, slots=True)
+class TimbreEvidenceWindow:
+    start_seconds: float
+    end_seconds: float
+    spectral_centroid_hz: float
+    spectral_bandwidth_hz: float
+    spectral_flatness: float
+    rolloff_85_hz: float
+    relative_band_energy: dict[str, float]
+    onset_strength_mean: float
+    onset_strength_peak: float
+    candidate_harmonic_profiles: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AnalysisResult:
     source_path: str
     sample_rate: int
@@ -61,8 +75,9 @@ class AnalysisResult:
     beat_interval_windows: tuple[dict[str, float | int], ...]
     chroma_windows: tuple[TimeWindow, ...]
     pitch_evidence_windows: tuple[PitchEvidenceWindow, ...]
+    timbre_evidence_windows: tuple[TimbreEvidenceWindow, ...]
     low_energy_intervals: tuple[dict[str, float], ...]
-    analyzer: str = "flow-listening-passage/0.4"
+    analyzer: str = "flow-listening-passage/0.5"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -213,6 +228,116 @@ def strongest_pitch_candidates(
     return tuple(result)
 
 
+def spectral_timbre_features(
+    magnitude: Any,
+    sample_rate: int,
+    midi_notes: Sequence[int] = (),
+    onset_strength: Sequence[float] = (),
+) -> dict[str, Any]:
+    """Summarize mixture timbre and candidate-note harmonic shape for one window.
+
+    These are acoustic descriptors, not instrument labels. Harmonic profiles
+    can contain energy from other notes or instruments in the same mixture.
+    """
+    import numpy as np
+
+    if sample_rate <= 0:
+        raise ValueError("sample_rate must be positive")
+    spectrum = np.asarray(magnitude, dtype=float)
+    if spectrum.ndim == 2:
+        spectrum = np.mean(spectrum, axis=1)
+    if spectrum.ndim != 1 or spectrum.size == 0:
+        raise ValueError("magnitude must be a non-empty 1D spectrum or 2D spectrogram")
+    spectrum = np.maximum(spectrum, 0.0)
+    epsilon = float(np.finfo(float).eps)
+    onset_values = np.asarray(onset_strength, dtype=float)
+    frequencies = np.linspace(0.0, sample_rate / 2.0, spectrum.size)
+    total_magnitude = float(np.sum(spectrum))
+    total_power = float(np.sum(spectrum**2))
+    if total_magnitude <= epsilon:
+        return {
+            "spectral_centroid_hz": 0.0,
+            "spectral_bandwidth_hz": 0.0,
+            "spectral_flatness": 0.0,
+            "rolloff_85_hz": 0.0,
+            "relative_band_energy": {name: 0.0 for name, _, _ in _SPECTRAL_BANDS},
+            "onset_strength_mean": float(np.mean(onset_values)) if onset_values.size else 0.0,
+            "onset_strength_peak": float(np.max(onset_values)) if onset_values.size else 0.0,
+            "candidate_harmonic_profiles": (),
+        }
+
+    centroid = float(np.sum(frequencies * spectrum) / total_magnitude)
+    bandwidth = float(
+        np.sqrt(np.sum(((frequencies - centroid) ** 2) * spectrum) / total_magnitude)
+    )
+    flatness = float(np.exp(np.mean(np.log(spectrum + epsilon))) / (np.mean(spectrum) + epsilon))
+    cumulative_power = np.cumsum(spectrum**2)
+    rolloff_index = int(np.searchsorted(cumulative_power, 0.85 * total_power, side="left"))
+    rolloff = float(frequencies[min(rolloff_index, frequencies.size - 1)])
+
+    relative_band_energy = {}
+    for name, lower_hz, upper_hz in _SPECTRAL_BANDS:
+        selected = (frequencies >= lower_hz) & (frequencies < upper_hz)
+        relative_band_energy[name] = (
+            float(np.sum(spectrum[selected] ** 2) / total_power) if total_power > epsilon else 0.0
+        )
+
+    bin_width = sample_rate / (2.0 * (spectrum.size - 1)) if spectrum.size > 1 else sample_rate
+    harmonic_profiles = []
+    for midi_note in midi_notes:
+        fundamental_hz = 440.0 * 2.0 ** ((int(midi_note) - 69) / 12.0)
+        harmonic_power = []
+        for harmonic in range(1, 9):
+            target_hz = fundamental_hz * harmonic
+            if target_hz >= sample_rate / 2.0:
+                break
+            center = int(round(target_hz / bin_width))
+            radius = max(1, int(round(target_hz * 0.01 / bin_width)))
+            left = max(0, center - radius)
+            right = min(spectrum.size, center + radius + 1)
+            harmonic_power.append(float(np.max(spectrum[left:right]) ** 2))
+        profile_total = sum(harmonic_power)
+        odd_power = sum(harmonic_power[::2])
+        even_power = sum(harmonic_power[1::2])
+        harmonic_profiles.append(
+            {
+                "midi_note": int(midi_note),
+                "fundamental_hz": fundamental_hz,
+                "harmonic_energy_ratios": (
+                    [value / profile_total for value in harmonic_power]
+                    if profile_total > epsilon
+                    else []
+                ),
+                "odd_to_even_harmonic_energy_ratio": (
+                    odd_power / max(even_power, epsilon) if odd_power > 0 else 0.0
+                ),
+            }
+        )
+
+    return {
+        "spectral_centroid_hz": centroid,
+        "spectral_bandwidth_hz": bandwidth,
+        "spectral_flatness": flatness,
+        "rolloff_85_hz": rolloff,
+        "relative_band_energy": relative_band_energy,
+        "onset_strength_mean": float(np.mean(onset_values)) if onset_values.size else 0.0,
+        "onset_strength_peak": float(np.max(onset_values)) if onset_values.size else 0.0,
+        "candidate_harmonic_profiles": tuple(harmonic_profiles),
+    }
+
+
+_SPECTRAL_BANDS = (
+    ("0_125_hz", 0.0, 125.0),
+    ("125_250_hz", 125.0, 250.0),
+    ("250_500_hz", 250.0, 500.0),
+    ("500_1k_hz", 500.0, 1000.0),
+    ("1k_2k_hz", 1000.0, 2000.0),
+    ("2k_4k_hz", 2000.0, 4000.0),
+    ("4k_8k_hz", 4000.0, 8000.0),
+    ("above_8k_hz", 8000.0, float("inf")),
+)
+
+
 def _window_frame_ranges(
     frame_count: int, window_frames: int, hop_frames: int
 ) -> tuple[tuple[int, int], ...]:
@@ -330,6 +455,30 @@ def analyze_audio(
             pitch_cqt.shape[1], pitch_frames_per_window, pitch_frames_per_hop
         )
     )
+    timbre_n_fft = 4096
+    timbre_magnitude = np.abs(
+        librosa.stft(signal, n_fft=timbre_n_fft, hop_length=hop_length)
+    )
+    timbre_evidence_windows = tuple(
+        TimbreEvidenceWindow(
+            start_seconds=start_seconds + frame_start * hop_length / sample_rate,
+            end_seconds=min(
+                start_seconds + len(signal) / sample_rate,
+                start_seconds + frame_end * hop_length / sample_rate,
+            ),
+            **spectral_timbre_features(
+                timbre_magnitude[:, frame_start:frame_end],
+                int(sample_rate),
+                [candidate.midi_note for candidate in pitch_evidence_windows[index].candidates],
+                onset_envelope[frame_start : min(frame_end, len(onset_envelope))],
+            ),
+        )
+        for index, (frame_start, frame_end) in enumerate(
+            _window_frame_ranges(
+                timbre_magnitude.shape[1], pitch_frames_per_window, pitch_frames_per_hop
+            )
+        )
+    )
     frame_times = tuple(start_seconds + i * hop_length / sample_rate for i in range(len(rms) + 1))
     low_energy = _low_energy_intervals(
         rms,
@@ -356,6 +505,7 @@ def analyze_audio(
         beat_interval_windows=beat_interval_windows(absolute_beats, absolute_offset=0.0),
         chroma_windows=chroma_windows,
         pitch_evidence_windows=pitch_evidence_windows,
+        timbre_evidence_windows=timbre_evidence_windows,
         low_energy_intervals=low_energy,
     )
 

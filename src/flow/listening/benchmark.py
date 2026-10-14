@@ -579,6 +579,7 @@ def _score_part_attack_alignment(
     part_sequences.update(reference.get("part_events", {}))
     clusters = list(analysis.get("onset_clusters", []))
     windows = list(analysis.get("pitch_evidence_windows", []))
+    timbre_windows = list(analysis.get("timbre_evidence_windows", []))
     part_results: dict[str, dict[str, Any]] = {}
     events_by_beat: dict[float, list[dict[str, Any]]] = {}
 
@@ -610,6 +611,16 @@ def _score_part_attack_alignment(
                 [
                     window
                     for window in windows
+                    if float(window["end_seconds"]) >= evidence_center - 0.1
+                    and float(window["start_seconds"]) <= evidence_center + 0.15
+                ]
+                if evidence_center is not None
+                else []
+            )
+            nearby_timbre_windows = (
+                [
+                    window
+                    for window in timbre_windows
                     if float(window["end_seconds"]) >= evidence_center - 0.1
                     and float(window["start_seconds"]) <= evidence_center + 0.15
                 ]
@@ -655,6 +666,24 @@ def _score_part_attack_alignment(
                     for note, strength in sorted(
                         strengths.items(), key=lambda item: item[1], reverse=True
                     )[:8]
+                ],
+                "nearby_timbre_evidence": [
+                    {
+                        key: window.get(key)
+                        for key in (
+                            "start_seconds",
+                            "end_seconds",
+                            "spectral_centroid_hz",
+                            "spectral_bandwidth_hz",
+                            "spectral_flatness",
+                            "rolloff_85_hz",
+                            "relative_band_energy",
+                            "onset_strength_mean",
+                            "onset_strength_peak",
+                            "candidate_harmonic_profiles",
+                        )
+                    }
+                    for window in nearby_timbre_windows
                 ],
             }
             attacks.append(attack)
@@ -742,6 +771,7 @@ def _score_part_attack_alignment(
             "Evidence is measured from the whole mix; support does not prove that a candidate came from its named score part.",
             "One onset and one pitch candidate may support multiple parts that double the same note.",
             "Pitch candidates are truncated salience peaks and may omit quieter simultaneous notes.",
+            "Timbre descriptors summarize the mixed audio near an attack; they are not instrument labels or separated stems.",
             "A score part can establish expected voice count even when the recording cannot acoustically distinguish doubled unison notes.",
             "Timing inherits uncertainty from the score-to-audio anchors, especially around fermatas and stretched intervals.",
         ],

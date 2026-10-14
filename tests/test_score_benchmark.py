@@ -157,6 +157,22 @@ class ScoreBenchmarkTests(unittest.TestCase):
             },
         }
         analysis = {
+            "timbre_evidence_windows": [
+                {
+                    "start_seconds": 0.0,
+                    "end_seconds": 0.2,
+                    "spectral_centroid_hz": 900.0,
+                    "spectral_bandwidth_hz": 700.0,
+                    "spectral_flatness": 0.12,
+                    "rolloff_85_hz": 1800.0,
+                    "relative_band_energy": {"500_1k_hz": 0.4},
+                    "onset_strength_mean": 0.2,
+                    "onset_strength_peak": 0.8,
+                    "candidate_harmonic_profiles": [
+                        {"midi_note": 67, "odd_to_even_harmonic_energy_ratio": 1.3}
+                    ],
+                }
+            ],
             "pitch_evidence_windows": [
                 {
                     "start_seconds": 0.0,
@@ -200,6 +216,8 @@ class ScoreBenchmarkTests(unittest.TestCase):
             all(note["exact_pitch_supported"] for note in first_stack["expected_pitches"])
         )
         self.assertIn("double the same note", " ".join(part_alignment["interpretation_limits"]))
+        timbre = part_alignment["parts"]["Violas"]["attacks"][0]["nearby_timbre_evidence"]
+        self.assertEqual(timbre[0]["spectral_centroid_hz"], 900.0)
 
     def test_aligns_individual_attacks_to_nearby_onset_and_pitch_evidence(self):
         reference = {
