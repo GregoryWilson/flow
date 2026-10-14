@@ -6,7 +6,11 @@ import argparse
 import json
 from pathlib import Path
 
-from flow.composer import beethoven_opening_recipe
+from flow.composer import (
+    beethoven_opening_recipe,
+    rhythm_section_feature_recipe,
+    write_midi,
+)
 from flow.listening.benchmark import compare_analysis_to_score
 from flow.listening.onset_review import inspect_onset_pitch_evidence
 from flow.listening import analyze_audio
@@ -62,6 +66,19 @@ def build_parser() -> argparse.ArgumentParser:
     seed.add_argument(
         "--out", type=Path, default=Path("beethoven-opening.recipe.json")
     )
+
+    render_demo = commands.add_parser(
+        "render-rhythm-demo",
+        help="export a bass/percussion foreground handoff as a MIDI file",
+    )
+    render_demo.add_argument("--out", type=Path, default=Path("rhythm-section-demo.mid"))
+    render_demo.add_argument("--tempo", type=float, default=120.0, help="quarter notes per minute")
+    render_demo.add_argument(
+        "--tonic-midi",
+        type=int,
+        default=60,
+        help="MIDI note number for tonic C4 (60); example uses the natural minor scale",
+    )
     return parser
 
 
@@ -81,6 +98,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "init-beethoven":
         beethoven_opening_recipe().write_json(args.out)
         print(f"Wrote benchmark recipe to {args.out}")
+        return 0
+    if args.command == "render-rhythm-demo":
+        notes = write_midi(
+            rhythm_section_feature_recipe(),
+            args.out,
+            tonic_midi=args.tonic_midi,
+            tempo_bpm=args.tempo,
+        )
+        print(f"Wrote {len(notes)} MIDI note events to {args.out}")
         return 0
     if args.command == "compare-score":
         analysis = json.loads(args.analysis.read_text(encoding="utf-8"))
