@@ -235,7 +235,7 @@ def _rank_alignment_candidates(
         )
         ranked.append({
             "review_required": True,
-            "fit_score": round(1.0 / (1.0 + cost), 4),
+            "timing_fit_score": round(1.0 / (1.0 + cost), 4),
             "alignment_cost": round(cost, 4),
             "timing_residual_rms_beats": round(rms_beats, 4),
             "tempo_consistency_cv": round(rate_cv, 4),
@@ -1029,6 +1029,7 @@ def compare_analysis_to_score(
             "Candidates allow intervening whole-mix pitch runs and are ranking hypotheses, not confirmed score anchors.",
             "Candidate alignments do not populate score-beat anchors or trigger score-part attack mapping.",
             "Timing fit uses a broad 35–240 BPM range and a linear passage map; expressive timing may differ.",
+            "Timing fit scores are relative ranking values, not probabilities or musical correctness scores.",
         ],
         "comparison": comparison,
         "score_beat_alignment": beat_alignment,
