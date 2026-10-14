@@ -561,6 +561,199 @@ def _score_attack_alignment(
     }
 
 
+def _score_part_attack_alignment(
+    reference: Mapping[str, Any],
+    analysis: Mapping[str, Any],
+    anchors: Sequence[Mapping[str, Any]],
+    minimum_strength: float,
+    onset_tolerance_seconds: float,
+) -> dict[str, Any]:
+    """Compare score-labeled part attacks with whole-mix pitch/onset evidence.
+
+    This deliberately allows one whole-mix onset to support several score
+    parts, because doubled notes produce one shared acoustic attack.
+    """
+    part_sequences: dict[str, Sequence[Mapping[str, Any]]] = {
+        "reference_events": reference.get("events", [])
+    }
+    part_sequences.update(reference.get("part_events", {}))
+    clusters = list(analysis.get("onset_clusters", []))
+    windows = list(analysis.get("pitch_evidence_windows", []))
+    part_results: dict[str, dict[str, Any]] = {}
+    events_by_beat: dict[float, list[dict[str, Any]]] = {}
+
+    for part_id, events in part_sequences.items():
+        attacks: list[dict[str, Any]] = []
+        for event in events:
+            if event.get("event_type", "note") != "note":
+                continue
+            midi_note = int(event["midi_note"])
+            beat = float(event["beat"])
+            predicted = _time_at_score_beat(beat, anchors)
+            nearest = (
+                min(
+                    clusters,
+                    key=lambda cluster: abs(float(cluster["center_seconds"]) - predicted),
+                )
+                if predicted is not None and clusters
+                else None
+            )
+            onset_delta = (
+                float(nearest["center_seconds"]) - predicted if nearest is not None else None
+            )
+            evidence_center = (
+                float(nearest["center_seconds"])
+                if nearest is not None and abs(onset_delta or 0.0) <= onset_tolerance_seconds
+                else predicted
+            )
+            nearby_windows = (
+                [
+                    window
+                    for window in windows
+                    if float(window["end_seconds"]) >= evidence_center - 0.1
+                    and float(window["start_seconds"]) <= evidence_center + 0.15
+                ]
+                if evidence_center is not None
+                else []
+            )
+            strengths: dict[int, float] = {}
+            for window in nearby_windows:
+                for candidate in window.get("candidates", []):
+                    note = int(candidate["midi_note"])
+                    strengths[note] = max(
+                        strengths.get(note, 0.0), float(candidate["relative_strength"])
+                    )
+            exact_strength = strengths.get(midi_note, 0.0)
+            pitch_class_strength = max(
+                (strength for note, strength in strengths.items() if note % 12 == midi_note % 12),
+                default=0.0,
+            )
+            attack = {
+                "part_id": part_id,
+                "role": event.get("role"),
+                "score_beat": beat,
+                "expected_pitch": event.get("pitch", _pitch_label(midi_note)),
+                "expected_midi_note": midi_note,
+                "predicted_audio_seconds": predicted,
+                "nearest_whole_mix_onset_seconds": (
+                    float(nearest["center_seconds"]) if nearest is not None else None
+                ),
+                "nearest_onset_delta_seconds": onset_delta,
+                "onset_within_tolerance": (
+                    onset_delta is not None and abs(onset_delta) <= onset_tolerance_seconds
+                ),
+                "expected_pitch_peak_strength": exact_strength,
+                "pitch_class_peak_strength": pitch_class_strength,
+                "exact_pitch_supported": exact_strength >= minimum_strength,
+                "pitch_class_supported": pitch_class_strength >= minimum_strength,
+                "nearby_candidate_pitches": [
+                    {
+                        "midi_note": note,
+                        "pitch": _pitch_label(note),
+                        "peak_relative_strength": strength,
+                    }
+                    for note, strength in sorted(
+                        strengths.items(), key=lambda item: item[1], reverse=True
+                    )[:8]
+                ],
+            }
+            attacks.append(attack)
+            events_by_beat.setdefault(beat, []).append(attack)
+
+        part_results[part_id] = {
+            "note_event_count": len(attacks),
+            "mapped_attack_count": sum(
+                attack["predicted_audio_seconds"] is not None for attack in attacks
+            ),
+            "onset_supported_count": sum(attack["onset_within_tolerance"] for attack in attacks),
+            "exact_pitch_supported_count": sum(
+                attack["exact_pitch_supported"] for attack in attacks
+            ),
+            "pitch_class_supported_count": sum(
+                attack["pitch_class_supported"] for attack in attacks
+            ),
+            "attacks": attacks,
+        }
+
+    simultaneous_parts = []
+    for beat, attacks in sorted(events_by_beat.items()):
+        if len(attacks) < 2:
+            continue
+        distinct_pitches: dict[int, list[str]] = {}
+        for attack in attacks:
+            distinct_pitches.setdefault(attack["expected_midi_note"], []).append(
+                attack["part_id"]
+            )
+        if len(distinct_pitches) < 2:
+            continue
+        predicted = next(
+            (
+                attack["predicted_audio_seconds"]
+                for attack in attacks
+                if attack["predicted_audio_seconds"] is not None
+            ),
+            None,
+        )
+        nearby_candidates: dict[int, float] = {}
+        if predicted is not None:
+            for window in windows:
+                if (
+                    float(window["end_seconds"]) < predicted - 0.1
+                    or float(window["start_seconds"]) > predicted + 0.15
+                ):
+                    continue
+                for candidate in window.get("candidates", []):
+                    note = int(candidate["midi_note"])
+                    nearby_candidates[note] = max(
+                        nearby_candidates.get(note, 0.0),
+                        float(candidate["relative_strength"]),
+                    )
+        simultaneous_parts.append(
+            {
+                "score_beat": beat,
+                "predicted_audio_seconds": predicted,
+                "score_part_count": len(attacks),
+                "distinct_score_pitch_count": len(distinct_pitches),
+                "expected_pitches": [
+                    {
+                        "midi_note": note,
+                        "pitch": _pitch_label(note),
+                        "score_parts": parts,
+                        "audio_peak_strength": nearby_candidates.get(note, 0.0),
+                        "exact_pitch_supported": nearby_candidates.get(note, 0.0)
+                        >= minimum_strength,
+                    }
+                    for note, parts in sorted(distinct_pitches.items())
+                ],
+                "nearby_candidate_pitches": [
+                    {
+                        "midi_note": note,
+                        "pitch": _pitch_label(note),
+                        "peak_relative_strength": strength,
+                    }
+                    for note, strength in sorted(
+                        nearby_candidates.items(), key=lambda item: item[1], reverse=True
+                    )[:8]
+                ],
+            }
+        )
+
+    return {
+        "method": "score-time-aligned part attacks compared with whole-mix pitch candidates and onset clusters",
+        "minimum_relative_strength": minimum_strength,
+        "onset_tolerance_seconds": onset_tolerance_seconds,
+        "parts": part_results,
+        "simultaneous_part_events": simultaneous_parts,
+        "interpretation_limits": [
+            "Evidence is measured from the whole mix; support does not prove that a candidate came from its named score part.",
+            "One onset and one pitch candidate may support multiple parts that double the same note.",
+            "Pitch candidates are truncated salience peaks and may omit quieter simultaneous notes.",
+            "A score part can establish expected voice count even when the recording cannot acoustically distinguish doubled unison notes.",
+            "Timing inherits uncertainty from the score-to-audio anchors, especially around fermatas and stretched intervals.",
+        ],
+    }
+
+
 def compare_analysis_to_score(
     analysis: Mapping[str, Any],
     reference: Mapping[str, Any],
@@ -638,6 +831,13 @@ def compare_analysis_to_score(
         minimum_strength,
         onset_tolerance_seconds,
     )
+    part_attack_alignment = _score_part_attack_alignment(
+        reference,
+        analysis,
+        beat_alignment["anchors"],
+        minimum_strength,
+        onset_tolerance_seconds,
+    )
     return {
         "reference_id": reference.get("id"),
         "analyzer": analysis.get("analyzer"),
@@ -647,6 +847,7 @@ def compare_analysis_to_score(
         "comparison": comparison,
         "score_beat_alignment": beat_alignment,
         "score_attack_alignment": attack_alignment,
+        "score_part_attack_alignment": part_attack_alignment,
         "score_part_activity": reference.get("part_activity"),
         "observed_runs": runs,
         "interpretation_limits": [
