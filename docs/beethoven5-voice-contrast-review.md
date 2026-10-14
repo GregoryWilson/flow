@@ -4,7 +4,7 @@
 
 Use measures 18–21 of movement I as the next score-assisted comparison. The opening motif is largely doubled; this short passage gives the benchmark different registers, pitches, and attack patterns across the score lanes.
 
-The reference file stores the bassoon line in `events` as the alignment anchor. The remaining score lanes are under `part_events`. MIDI score tracks 05 and 06 keep neutral IDs because their embedded instrument labels do not match the orchestra staff names; the reference does not guess their instrument identity. Empty gaps are not encoded as rests.
+The reference is a candidate transcription from Mutopia's MIDI. Mutopia says the material is provided as-is and makes no claim of musical correctness, so cross-check the note events against the published score before treating this as ground truth. The bassoon line in `events` is the alignment anchor. The remaining score lanes are under `part_events`. MIDI score tracks 05 and 06 keep neutral IDs because their embedded instrument labels do not match the orchestra staff names; the reference does not guess their instrument identity. Empty gaps are not encoded as rests.
 
 ## Keep analysis and score evidence separate
 
