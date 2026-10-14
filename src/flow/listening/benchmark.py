@@ -337,6 +337,33 @@ def _pitch_relationships_to_score(
     return relationships
 
 
+def _score_context_summary(contexts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Summarize modeled score lanes without interpreting audio as a note event."""
+    notes = [context for context in contexts if context.get("type") == "note_duration"]
+    rests = [context for context in contexts if context.get("type") == "rest"]
+
+    def lane_name(context: Mapping[str, Any]) -> str | None:
+        return context.get("score_part") or context.get("role")
+
+    note_lanes = sorted({name for context in notes if (name := lane_name(context))})
+    rest_lanes = sorted({name for context in rests if (name := lane_name(context))})
+    mapped = bool(contexts) and all(
+        context.get("type") in {"note_duration", "rest"} for context in contexts
+    )
+    return {
+        "status": (
+            "all_modeled_lanes_rest"
+            if mapped and not notes and rests
+            else "contains_scored_note"
+            if notes
+            else "unmapped"
+        ),
+        "note_lanes": note_lanes,
+        "rest_lanes": rest_lanes,
+        "modeled_lane_count": len(set(note_lanes) | set(rest_lanes)),
+    }
+
+
 def _score_attack_alignment(
     reference: Mapping[str, Any],
     analysis: Mapping[str, Any],
@@ -490,6 +517,7 @@ def _score_attack_alignment(
                     "estimated_score_beat": score_beat,
                     "score_time_map": time_map,
                     "score_contexts": score_contexts,
+                    "score_context_summary": _score_context_summary(score_contexts),
                     "nearest_score_attack_pitch": nearest_attack["expected_pitch"],
                     "nearest_score_attack_delta_seconds": (
                         center - float(nearest_attack["predicted_audio_seconds"])
