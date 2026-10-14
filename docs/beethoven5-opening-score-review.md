@@ -32,9 +32,9 @@ For this passage, the score gives us a controlled example of:
 3. **Concert-pitch conversion:** transposing notation must be normalized before comparing pitch candidates.
 4. **Phrase-level timing:** align the ordered score events to the recording before judging duration or expressive timing.
 
-The score comparison now reports pitch candidates by octave within each matched pitch-class run. That lets us ask whether the motif is supported in multiple registers while using the same frozen audio evidence. It is still whole-mix salience, so octave matches may be harmonics and cannot identify the instruments producing them.
+The score comparison reports pitch candidates by octave within each matched pitch-class run and now includes the score's expected active/resting parts for the opening motif. The activity annotation confirms that the motif is shared by strings and clarinets, while the other listed sections rest in this passage. It is score-only context: the audio evidence still cannot identify which of the active parts produced a candidate.
 
-The next useful algorithm step is to align score events to the performance and report expected note/onset patterns for each part. It should label results as compatible audio evidence, not instrument recognition. For audio-only operation, Flow can later propose foreground, bass, and accompaniment candidates from register, onset density, continuity, and harmonic support without consulting a score.
+The comparison also maps score-beat starts to detected pitch-run starts and reports local seconds-per-beat and implied BPM between adjacent anchors. In the saved comparison, the anchors are approximately G4 at beat 0.5 / 0.736 s, E-flat4 at beat 2 / 1.717 s, F4 at beat 4.5 / 4.171 s, and D4 at beat 6 / 4.907 s. These are coarse boundaries, not detected note attacks. Fermatas and broad pitch runs stretch the intervals, so local BPM values are timing diagnostics, not a tempo estimate. The next step is to use onset-adjacent pitch evidence to test individual score attacks, still labeling results as compatible audio evidence rather than instrument recognition. For audio-only operation, Flow can later propose foreground, bass, and accompaniment candidates from register, onset density, continuity, and harmonic support without consulting a score.
 
 ## Limits
 

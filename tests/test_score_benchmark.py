@@ -7,6 +7,10 @@ class ScoreBenchmarkTests(unittest.TestCase):
     def test_matches_pitch_class_groups_and_keeps_attack_counts_cautious(self):
         reference = {
             "id": "test.motif",
+            "part_activity": {
+                "active_parts": ["Violin I", "Clarinet I"],
+                "resting_parts": ["Trumpet I"],
+            },
             "events": [
                 {"event_type": "rest", "beat": 0, "duration_beats": 0.5},
                 *[
@@ -70,6 +74,15 @@ class ScoreBenchmarkTests(unittest.TestCase):
                 }
             ],
         )
+        alignment = result["score_beat_alignment"]
+        self.assertEqual(len(alignment["anchors"]), 4)
+        self.assertEqual(alignment["anchors"][0], {
+            "pitch": "G4", "score_beat": 0.5, "audio_seconds": 0.0
+        })
+        self.assertEqual(len(alignment["intervals"]), 3)
+        self.assertAlmostEqual(alignment["intervals"][0]["implied_bpm"], 225.0)
+        self.assertEqual(result["score_part_activity"], reference["part_activity"])
+        self.assertIn("not detected note attacks", alignment["limitations"][0])
         self.assertIn("Whole-mix onset counts cannot confirm repeated attacks in the melody part.",
                       result["interpretation_limits"])
 
