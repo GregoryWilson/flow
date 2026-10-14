@@ -184,11 +184,153 @@ def _score_beat_alignment(
     }
 
 
+def _time_at_score_beat(
+    beat: float, anchors: Sequence[Mapping[str, Any]]
+) -> float | None:
+    """Interpolate only within measured anchor coverage; do not extrapolate."""
+    for left, right in zip(anchors, anchors[1:]):
+        left_beat = float(left["score_beat"])
+        right_beat = float(right["score_beat"])
+        if left_beat <= beat <= right_beat and right_beat > left_beat:
+            left_time = float(left["audio_seconds"])
+            right_time = float(right["audio_seconds"])
+            return left_time + (beat - left_beat) * (right_time - left_time) / (
+                right_beat - left_beat
+            )
+    if anchors and beat == float(anchors[-1]["score_beat"]):
+        return float(anchors[-1]["audio_seconds"])
+    return None
+
+
+def _score_attack_alignment(
+    reference: Mapping[str, Any],
+    analysis: Mapping[str, Any],
+    anchors: Sequence[Mapping[str, Any]],
+    minimum_strength: float,
+    onset_tolerance_seconds: float,
+) -> dict[str, Any]:
+    """Compare each score note attack with nearby whole-mix onset and pitch evidence."""
+    clusters = list(analysis.get("onset_clusters", []))
+    windows = list(analysis.get("pitch_evidence_windows", []))
+    used_cluster_indexes: set[int] = set()
+    attacks: list[dict[str, Any]] = []
+
+    for event in reference.get("events", []):
+        if event.get("event_type", "note") != "note":
+            continue
+        midi_note = int(event["midi_note"])
+        pitch_class = midi_note % 12
+        beat = float(event["beat"])
+        predicted = _time_at_score_beat(beat, anchors)
+
+        nearest_index: int | None = None
+        nearest_delta: float | None = None
+        if predicted is not None:
+            for index, cluster in enumerate(clusters):
+                if index in used_cluster_indexes:
+                    continue
+                delta = float(cluster["center_seconds"]) - predicted
+                if nearest_delta is None or abs(delta) < abs(nearest_delta):
+                    nearest_index = index
+                    nearest_delta = delta
+
+        within_tolerance = (
+            nearest_delta is not None
+            and abs(nearest_delta) <= onset_tolerance_seconds
+        )
+        matched_cluster = (
+            clusters[nearest_index]
+            if within_tolerance and nearest_index is not None
+            else None
+        )
+        if matched_cluster is not None and nearest_index is not None:
+            used_cluster_indexes.add(nearest_index)
+
+        evidence_center = (
+            float(matched_cluster["center_seconds"])
+            if matched_cluster is not None
+            else predicted
+        )
+        nearby_windows = (
+            [
+                window
+                for window in windows
+                if float(window["end_seconds"]) >= evidence_center - 0.1
+                and float(window["start_seconds"]) <= evidence_center + 0.15
+            ]
+            if evidence_center is not None
+            else []
+        )
+        candidate_strengths: dict[int, list[float]] = {}
+        for window in nearby_windows:
+            for candidate in window.get("candidates", []):
+                candidate_midi = int(candidate["midi_note"])
+                if candidate_midi % 12 == pitch_class:
+                    candidate_strengths.setdefault(candidate_midi, []).append(
+                        float(candidate["relative_strength"])
+                    )
+        pitch_class_peak = max(
+            (max(strengths) for strengths in candidate_strengths.values()), default=0.0
+        )
+        expected_pitch_peak = max(candidate_strengths.get(midi_note, []), default=0.0)
+        pitch_supported = pitch_class_peak >= minimum_strength
+
+        attacks.append(
+            {
+                "score_beat": beat,
+                "expected_pitch": event.get("pitch", _pitch_label(midi_note)),
+                "expected_midi_note": midi_note,
+                "predicted_audio_seconds": predicted,
+                "nearest_onset_seconds": (
+                    float(clusters[nearest_index]["center_seconds"])
+                    if nearest_index is not None
+                    else None
+                ),
+                "nearest_onset_delta_seconds": (
+                    nearest_delta if nearest_delta is not None else None
+                ),
+                "onset_within_tolerance": within_tolerance,
+                "whole_mix_event_count": (
+                    int(matched_cluster.get("event_count", 1))
+                    if matched_cluster is not None
+                    else None
+                ),
+                "nearby_pitch_window_count": len(nearby_windows),
+                "expected_midi_peak_strength": expected_pitch_peak,
+                "pitch_class_peak_strength": pitch_class_peak,
+                "pitch_class_supported": pitch_supported,
+                "register_evidence": [
+                    {
+                        "midi_note": candidate_midi,
+                        "pitch": _pitch_label(candidate_midi),
+                        "peak_relative_strength": max(strengths),
+                        "candidate_window_count": len(strengths),
+                    }
+                    for candidate_midi, strengths in sorted(candidate_strengths.items())
+                ],
+            }
+        )
+
+    return {
+        "method": "piecewise score-beat interpolation with nearest unused onset and local pitch windows",
+        "onset_tolerance_seconds": onset_tolerance_seconds,
+        "minimum_pitch_strength": minimum_strength,
+        "attacks": attacks,
+        "limitations": [
+            "Onset clusters summarize the whole mix and may represent several instruments.",
+            "Pitch salience near an onset is supporting evidence, not proof of its source.",
+            "Pitch windows overlap in time and can smear attacks across neighboring notes.",
+            "Attacks outside measured score-beat anchors have no predicted time.",
+        ],
+    }
+
+
 def compare_analysis_to_score(
     analysis: Mapping[str, Any],
     reference: Mapping[str, Any],
     *,
     minimum_strength: float = 0.3,
+    onset_tolerance_seconds: float = 0.2,
 ) -> dict[str, Any]:
     """Find an ordered pitch-class passage in score-informed pitch evidence.
 
@@ -197,6 +339,8 @@ def compare_analysis_to_score(
     """
     if not 0 <= minimum_strength <= 1:
         raise ValueError("minimum_strength must be between 0 and 1")
+    if onset_tolerance_seconds < 0:
+        raise ValueError("onset_tolerance_seconds cannot be negative")
     reference_groups = _reference_groups(reference)
     if not reference_groups:
         raise ValueError("score reference contains no note events")
@@ -250,6 +394,14 @@ def compare_analysis_to_score(
             }
         )
 
+    beat_alignment = _score_beat_alignment(reference_groups, comparison)
+    attack_alignment = _score_attack_alignment(
+        reference,
+        analysis,
+        beat_alignment["anchors"],
+        minimum_strength,
+        onset_tolerance_seconds,
+    )
     return {
         "reference_id": reference.get("id"),
         "analyzer": analysis.get("analyzer"),
@@ -257,7 +409,8 @@ def compare_analysis_to_score(
         "ordered_pitch_class_sequence_found": bool(matched),
         "expected_pitch_class_sequence": [group["pitch_class_name"] for group in reference_groups],
         "comparison": comparison,
-        "score_beat_alignment": _score_beat_alignment(reference_groups, comparison),
+        "score_beat_alignment": beat_alignment,
+        "score_attack_alignment": attack_alignment,
         "score_part_activity": reference.get("part_activity"),
         "observed_runs": runs,
         "interpretation_limits": [
@@ -265,6 +418,6 @@ def compare_analysis_to_score(
             "Pitch-class matches may come from accompaniment or harmonics, not melody.",
             "Register candidates are whole-mix salience; octave matches may be harmonics.",
             "Whole-mix onset counts cannot confirm repeated attacks in the melody part.",
-            "Beat alignment uses pitch-run boundaries; it does not align individual note attacks.",
+            "Attack alignment is a local audio-evidence comparison, not melody transcription.",
         ],
     }
