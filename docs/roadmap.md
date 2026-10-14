@@ -36,6 +36,8 @@
   score reference after the audio-only measurements are frozen.
 - Emit an ordered pitch-class comparison with octave support, onset-cluster
   counts, and performance timestamps; keep it out of the audio-only result.
+- Pair whole-mix onset clusters with adjacent timestamped pitch windows so
+  reviewers can inspect candidate pitches around each detected attack.
 - Measure note and phrase accuracy against reviewed reference events before
   treating the analyzer as a source of reusable musical knowledge.
 
