@@ -131,6 +131,47 @@ class ScoreBenchmarkTests(unittest.TestCase):
         self.assertAlmostEqual(evidence[0]["mean_relative_strength"], 0.6)
         self.assertTrue(any("harmonics" in limit for limit in result["interpretation_limits"]))
 
+    def test_aligns_individual_attacks_to_nearby_onset_and_pitch_evidence(self):
+        reference = {
+            "id": "test.attacks",
+            "events": [
+                {"event_type": "note", "beat": 0, "duration_beats": 1, "midi_note": 60},
+                {"event_type": "note", "beat": 1, "duration_beats": 1, "midi_note": 62},
+            ],
+        }
+        analysis = {
+            "pitch_evidence_windows": [
+                {
+                    "start_seconds": 0.9,
+                    "end_seconds": 1.0,
+                    "candidates": [{"midi_note": 60, "relative_strength": 0.8}],
+                },
+                {
+                    "start_seconds": 1.9,
+                    "end_seconds": 2.0,
+                    "candidates": [{"midi_note": 62, "relative_strength": 0.65}],
+                },
+            ],
+            "onset_clusters": [
+                {"center_seconds": 0.95, "event_count": 2},
+                {"center_seconds": 1.95, "event_count": 1},
+            ],
+        }
+
+        result = compare_analysis_to_score(analysis, reference)
+        attacks = result["score_attack_alignment"]["attacks"]
+
+        self.assertEqual(len(attacks), 2)
+        self.assertEqual([attack["expected_pitch"] for attack in attacks], ["C4", "D4"])
+        self.assertAlmostEqual(attacks[0]["predicted_audio_seconds"], 0.9)
+        self.assertAlmostEqual(attacks[0]["nearest_onset_seconds"], 0.95)
+        self.assertAlmostEqual(attacks[0]["nearest_onset_delta_seconds"], 0.05)
+        self.assertTrue(attacks[0]["onset_within_tolerance"])
+        self.assertTrue(attacks[0]["pitch_class_supported"])
+        self.assertEqual(attacks[0]["whole_mix_event_count"], 2)
+        self.assertAlmostEqual(attacks[0]["expected_midi_peak_strength"], 0.8)
+        self.assertTrue(attacks[1]["pitch_class_supported"])
+
 
 if __name__ == "__main__":
     unittest.main()
