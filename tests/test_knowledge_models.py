@@ -2,8 +2,14 @@ import json
 import unittest
 from dataclasses import replace
 
-from flow.composer import beethoven_opening_recipe
-from flow.knowledge.models import FocusSpan, MelodyPresence, MusicalEvent, Recipe
+from flow.composer import beethoven_opening_recipe, rhythm_section_feature_recipe
+from flow.knowledge.models import (
+    EventType,
+    FocusSpan,
+    MelodyPresence,
+    MusicalEvent,
+    Recipe,
+)
 from flow.listening import beat_interval_windows, candidate_onset_gaps, cluster_onsets
 
 
@@ -54,6 +60,33 @@ class KnowledgeModelTests(unittest.TestCase):
                          ["bass", "percussion"])
         self.assertEqual(serialized["recipe"]["focus_plan"][0]["melody_presence"],
                          "absent")
+
+    def test_rhythm_section_feature_keeps_music_active_during_melody_rest(self):
+        entry = rhythm_section_feature_recipe()
+        recipe = entry.recipe
+        melody_events = [event for event in recipe.events if event.role == "melody"]
+        self.assertEqual(melody_events[-1].event_type, EventType.REST)
+        self.assertEqual((melody_events[-1].beat, melody_events[-1].duration_beats), (8.0, 8.0))
+
+        for beat in range(8, 16):
+            active_roles = {
+                event.role
+                for event in recipe.events
+                if event.event_type != EventType.REST
+                and event.beat <= beat < event.beat + event.duration_beats
+            }
+            self.assertIn("bass", active_roles)
+            self.assertIn("percussion", active_roles)
+
+        serialized = json.loads(json.dumps(entry.to_dict()))
+        self.assertEqual(
+            serialized["recipe"]["focus_plan"][1]["foreground_roles"],
+            ["bass", "percussion"],
+        )
+        self.assertEqual(
+            serialized["recipe"]["focus_plan"][1]["melody_presence"],
+            "absent",
+        )
 
     def test_focus_plan_rejects_unknown_roles_and_overlapping_spans(self):
         with self.assertRaisesRegex(ValueError, "unknown roles"):
