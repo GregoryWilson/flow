@@ -58,6 +58,10 @@ A `rest` event belongs to a specific role lane; the other lanes can continue.
 The focus plan records what carries attention, while the events record what
 each role plays.
 
+The starter example `rhythm_section_feature_recipe()` encodes this directly:
+the melody rests for beats 8–16, bass and percussion continue, and foreground
+focus moves to those two roles.
+
 ## Status lifecycle
 
 `proposed → reviewed → demonstrated → validated`
