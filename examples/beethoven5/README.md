@@ -48,6 +48,9 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Inspect beat estimates and document ambiguity around pauses and held notes.
 - Compare the audio-only output to `score_reference.json` only after saving it;
   the report is a review aid, not a melody-transcription accuracy score.
+- Review the comparison's `register_evidence` for exact pitch candidates by
+  octave within each matched pitch-class run. This can show multi-register
+  support, but the whole mix and harmonic overtones prevent instrument attribution.
 - Inspect onset-adjacent pitch candidates with `flow inspect-onsets`; clusters
   and pitch candidates are whole-mix evidence, not source-separated note attacks.
 - Compare chroma evidence with the score only after audio-only output is saved.
