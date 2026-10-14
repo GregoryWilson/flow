@@ -40,6 +40,8 @@ The new `score_attack_alignment` checks each individual notated note onset again
 
 The unassigned-onset report now maps each event's time back through the same coarse anchors and lists the score reference notes or rests at that estimated beat. This helps distinguish events that fall inside a notated rest from events that overlap one or more note durations. The inverse map inherits the anchor interpolation's uncertainty, especially around fermatas; it cannot establish a rearticulation, fill, trill, or instrument source.
 
+Nearby pitch candidates are also compared with the score pitches at that estimated beat. Same-pitch-class and octave relationships can show that a low candidate is compatible with a scored motif tone. They cannot distinguish an instrument doubling from a harmonic or another source in the mix.
+
 ## Limits
 
 This is a small, manually reviewed opening passage, not a general score transcription benchmark. The existing analyzer reports pitch salience and whole-mix onset clusters; it does not separate sources, identify instruments, or prove which layer produced a pitch. Score-assisted results should remain separate from the audio-only report so the reference cannot leak into discovery.

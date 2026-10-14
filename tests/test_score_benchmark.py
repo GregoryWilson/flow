@@ -3,6 +3,7 @@ import unittest
 from flow.listening.benchmark import (
     _score_beat_at_time,
     _score_context_at_beat,
+    _pitch_relationships_to_score,
     compare_analysis_to_score,
 )
 
@@ -209,6 +210,12 @@ class ScoreBenchmarkTests(unittest.TestCase):
         sustain = _score_context_at_beat(3.0, events)
         self.assertEqual(sustain[0]["type"], "note_duration")
         self.assertEqual([item["pitch"] for item in sustain], ["D4", "D3"])
+        relationships = _pitch_relationships_to_score(38, sustain)
+        self.assertEqual([item["same_pitch_class"] for item in relationships], [True, True])
+        self.assertEqual([item["octave_displacement"] for item in relationships], [-2, -1])
+        self.assertEqual(
+            _pitch_relationships_to_score(39, sustain)[0]["octave_displacement"], None
+        )
         self.assertEqual(
             _score_context_at_beat(-0.1, events)[0]["type"], "outside_reference"
         )

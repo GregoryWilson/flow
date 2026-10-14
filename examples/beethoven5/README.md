@@ -66,6 +66,9 @@ flow init-beethoven --out beethoven-opening.recipe.json
   see which score-reference notes or rests overlap it. The beat is interpolated
   from coarse audio anchors and is a diagnostic, not precise rhythmic
   transcription or proof of a fill.
+- Check each nearby candidate's `score_pitch_relationships` for pitch-class or
+  octave compatibility with those score notes. Octave matches can come from
+  harmonics or doubled parts and do not identify an instrument.
 - Inspect onset-adjacent pitch candidates with `flow inspect-onsets`; clusters
   and pitch candidates are whole-mix evidence, not source-separated note attacks.
 - Compare chroma evidence with the score only after audio-only output is saved.
