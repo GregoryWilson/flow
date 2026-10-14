@@ -32,7 +32,9 @@ For this passage, the score gives us a controlled example of:
 3. **Concert-pitch conversion:** transposing notation must be normalized before comparing pitch candidates.
 4. **Phrase-level timing:** align the ordered score events to the recording before judging duration or expressive timing.
 
-The next useful algorithm step is a score-assisted, post-analysis alignment that reports per-part expected note/onset patterns and compares them to the same frozen audio evidence. It should label results as compatible audio evidence, not instrument recognition. For audio-only operation, Flow can later propose foreground, bass, and accompaniment candidates from register, onset density, continuity, and harmonic support without consulting a score.
+The score comparison now reports pitch candidates by octave within each matched pitch-class run. That lets us ask whether the motif is supported in multiple registers while using the same frozen audio evidence. It is still whole-mix salience, so octave matches may be harmonics and cannot identify the instruments producing them.
+
+The next useful algorithm step is to align score events to the performance and report expected note/onset patterns for each part. It should label results as compatible audio evidence, not instrument recognition. For audio-only operation, Flow can later propose foreground, bass, and accompaniment candidates from register, onset density, continuity, and harmonic support without consulting a score.
 
 ## Limits
 

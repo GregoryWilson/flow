@@ -57,8 +57,66 @@ class ScoreBenchmarkTests(unittest.TestCase):
             [group["expected_attack_count"] for group in result["comparison"]],
             [3, 1, 3, 1],
         )
+        self.assertEqual(
+            result["comparison"][0]["register_evidence"],
+            [
+                {
+                    "midi_note": 67,
+                    "pitch": "G4",
+                    "candidate_window_count": 2,
+                    "overlapping_window_count": 2,
+                    "peak_relative_strength": 0.9,
+                    "mean_relative_strength": 0.9,
+                }
+            ],
+        )
         self.assertIn("Whole-mix onset counts cannot confirm repeated attacks in the melody part.",
                       result["interpretation_limits"])
+
+    def test_reports_octave_candidates_without_claiming_separate_parts(self):
+        reference = {
+            "id": "test.registers",
+            "events": [
+                {"event_type": "note", "beat": 0, "duration_beats": 1, "midi_note": 67},
+                {"event_type": "note", "beat": 1, "duration_beats": 1, "midi_note": 63},
+            ],
+        }
+        analysis = {
+            "pitch_evidence_windows": [
+                {
+                    "start_seconds": 0.0,
+                    "end_seconds": 0.2,
+                    "candidates": [
+                        {"midi_note": 43, "relative_strength": 0.8},
+                        {"midi_note": 55, "relative_strength": 0.7},
+                        {"midi_note": 67, "relative_strength": 0.9},
+                    ],
+                },
+                {
+                    "start_seconds": 0.2,
+                    "end_seconds": 0.4,
+                    "candidates": [
+                        {"midi_note": 43, "relative_strength": 0.4},
+                        {"midi_note": 67, "relative_strength": 0.6},
+                    ],
+                },
+                {
+                    "start_seconds": 0.4,
+                    "end_seconds": 0.6,
+                    "candidates": [{"midi_note": 63, "relative_strength": 0.8}],
+                },
+            ],
+            "onset_clusters": [],
+        }
+
+        result = compare_analysis_to_score(analysis, reference)
+
+        evidence = result["comparison"][0]["register_evidence"]
+        self.assertEqual([item["pitch"] for item in evidence], ["G2", "G3", "G4"])
+        self.assertEqual(evidence[0]["candidate_window_count"], 2)
+        self.assertEqual(evidence[0]["overlapping_window_count"], 2)
+        self.assertAlmostEqual(evidence[0]["mean_relative_strength"], 0.6)
+        self.assertTrue(any("harmonics" in limit for limit in result["interpretation_limits"]))
 
 
 if __name__ == "__main__":
