@@ -695,19 +695,13 @@ def _score_part_attack_alignment(
             None,
         )
         nearby_candidates: dict[int, float] = {}
-        if predicted is not None:
-            for window in windows:
-                if (
-                    float(window["end_seconds"]) < predicted - 0.1
-                    or float(window["start_seconds"]) > predicted + 0.15
-                ):
-                    continue
-                for candidate in window.get("candidates", []):
-                    note = int(candidate["midi_note"])
-                    nearby_candidates[note] = max(
-                        nearby_candidates.get(note, 0.0),
-                        float(candidate["relative_strength"]),
-                    )
+        for attack in attacks:
+            for candidate in attack["nearby_candidate_pitches"]:
+                note = int(candidate["midi_note"])
+                nearby_candidates[note] = max(
+                    nearby_candidates.get(note, 0.0),
+                    float(candidate["peak_relative_strength"]),
+                )
         simultaneous_parts.append(
             {
                 "score_beat": beat,
