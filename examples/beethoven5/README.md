@@ -41,6 +41,8 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Compare two-second chroma windows to see harmonic/pitch-class evidence evolve.
 - Inspect short-window pitch candidates as relative salience evidence, not
   transcribed notes; orchestral harmonics can produce plausible but incorrect peaks.
+- Pitch evidence uses overlapping 250 ms windows sampled every 50 ms by default;
+  this improves timing detail while retaining a moderate analysis window.
 - Inspect pulse-window interval spread to identify unstable or ambiguous pulse
   tracking around held notes.
 - Inspect beat estimates and document ambiguity around pauses and held notes.
