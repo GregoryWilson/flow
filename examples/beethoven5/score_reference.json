@@ -13,6 +13,18 @@
     "copyright_status": "public domain",
     "notes": "Score facts are kept separate from audio-only measurements."
   },
+  "part_activity": {
+    "scope": "opening motif shown in the first score system",
+    "active_parts": [
+      "Clarinets I-II",
+      "Violins I-II",
+      "Violas",
+      "Cellos",
+      "Basses"
+    ],
+    "resting_parts": ["Flutes", "Oboes", "Bassoons", "Horns", "Trumpets", "Timpani"],
+    "notes": "Score-only activity annotation. Strings and clarinets share the motif; audio evidence cannot assign a detected note to one part."
+  },
   "events": [
     {"role": "upper-motif", "beat": 0.0, "duration_beats": 0.5, "event_type": "rest"},
     {"role": "upper-motif", "beat": 0.5, "duration_beats": 0.5, "event_type": "note", "midi_note": 67, "pitch": "G4"},
