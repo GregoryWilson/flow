@@ -26,6 +26,7 @@ frozen. The comparison report is generated only after that output is saved.
 
 ```powershell
 flow analyze recordings\beethoven5\performance.ogg --start 0 --duration 30 --out analysis.beethoven5.opening.json
+flow inspect-onsets analysis.beethoven5.opening.json --out analysis.beethoven5.onset-pitch-review.json
 flow compare-score analysis.beethoven5.opening.json --reference examples\beethoven5\score_reference.json --out analysis.beethoven5.score-comparison.json
 flow init-beethoven --out beethoven-opening.recipe.json
 ```
@@ -45,6 +46,8 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Inspect beat estimates and document ambiguity around pauses and held notes.
 - Compare the audio-only output to `score_reference.json` only after saving it;
   the report is a review aid, not a melody-transcription accuracy score.
+- Inspect onset-adjacent pitch candidates with `flow inspect-onsets`; clusters
+  and pitch candidates are whole-mix evidence, not source-separated note attacks.
 - Compare chroma evidence with the score only after audio-only output is saved.
 - Mark which observations support motif boundaries.
 - Render the recipe with neutral synthesis.
