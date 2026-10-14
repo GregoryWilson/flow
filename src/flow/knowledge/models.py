@@ -148,3 +148,71 @@ class KnowledgeEntry:
     def write_json(self, path: Path) -> None:
         path.write_text(json.dumps(self.to_dict(), indent=2) + "\n", encoding="utf-8")
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> KnowledgeEntry:
+        """Build a validated knowledge entry from the versioned JSON shape."""
+        intent = data["intent"]
+        context = data.get("context", {})
+        recipe_data = data["recipe"]
+        events = tuple(
+            MusicalEvent(
+                role=event["role"],
+                beat=event["beat"],
+                duration_beats=event["duration_beats"],
+                event_type=EventType(event.get("event_type", EventType.NOTE)),
+                scale_degree=event.get("scale_degree"),
+                interval_semitones=event.get("interval_semitones"),
+                velocity=event.get("velocity", 0.8),
+                timing_offset_ms=event.get("timing_offset_ms", 0.0),
+                tags=tuple(event.get("tags", ())),
+            )
+            for event in recipe_data["events"]
+        )
+        focus_plan = tuple(
+            FocusSpan(
+                start_beat=span["start_beat"],
+                duration_beats=span["duration_beats"],
+                foreground_roles=tuple(span["foreground_roles"]),
+                melody_presence=MelodyPresence(span.get("melody_presence", "unknown")),
+            )
+            for span in recipe_data.get("focus_plan", ())
+        )
+        evidence = tuple(
+            Evidence(
+                source_id=item["source_id"],
+                start_seconds=item["start_seconds"],
+                end_seconds=item["end_seconds"],
+                claim=item["claim"],
+                confidence=item.get("confidence", 0.0),
+            )
+            for item in data.get("evidence", ())
+        )
+        return cls(
+            id=data["id"],
+            title=data["title"],
+            intent_description=intent["description"],
+            recipe=Recipe(
+                roles=tuple(recipe_data["roles"]),
+                events=events,
+                invariants=tuple(recipe_data["invariants"]),
+                transformations=tuple(recipe_data["transformations"]),
+                focus_plan=focus_plan,
+            ),
+            status=Status(data.get("status", Status.PROPOSED)),
+            effects=tuple(intent.get("effects", ())),
+            requires=tuple(context.get("requires", ())),
+            avoid_when=tuple(context.get("avoid_when", ())),
+            evidence=evidence,
+            alternatives=tuple(data.get("alternatives", ())),
+            confidence=data.get("confidence", 0.0),
+            schema_version=data.get("schema_version", "1.0"),
+        )
+
+    @classmethod
+    def read_json(cls, path: Path) -> KnowledgeEntry:
+        """Read and parse a knowledge entry from a UTF-8 JSON file."""
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("knowledge entry JSON must contain an object")
+        return cls.from_dict(data)
+

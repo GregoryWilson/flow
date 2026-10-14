@@ -55,6 +55,8 @@ flow analyze path\to\authorized-recording.wav --out analysis.json
 flow init-beethoven --out beethoven-opening.recipe.json
 flow render-rhythm-demo --out rhythm-section-demo.mid --tempo 120 --tonic-midi 60
 flow render-audio-demo --out rhythm-section-demo.wav --tempo 120 --tonic-midi 60
+flow init-rhythm-demo --out my-idea.json
+flow render-recipe my-idea.json --out my-idea.wav --tempo 120 --tonic-midi 60
 ```
 
 Audio files, model weights, databases, and rendered sessions are deliberately
@@ -65,6 +67,11 @@ and drum assignments. `render-audio-demo` creates a dependency-free WAV preview
 with simple synthesized voices so the arrangement can be heard immediately.
 That reference sound is intended to check notes, roles, and handoffs; it is not
 a production synthesizer or the final real-time playback engine.
+
+`init-rhythm-demo` writes an editable knowledge-entry recipe. Adjust its events,
+roles, rests, or focus plan in a text editor, then pass it to `render-recipe`.
+The output extension selects WAV (`.wav`) or MIDI (`.mid`/`.midi`). The current
+demo renderer supports melody, bass, and percussion roles.
 
 ## Status
 
