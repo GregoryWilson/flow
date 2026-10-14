@@ -160,9 +160,13 @@ class ScoreBenchmarkTests(unittest.TestCase):
             "pitch_evidence_windows": [
                 {
                     "start_seconds": 0.0,
-                    "end_seconds": 0.2,
+                    "end_seconds": 0.05,
+                    "candidates": [{"midi_note": 67, "relative_strength": 0.8}],
+                },
+                {
+                    "start_seconds": 0.17,
+                    "end_seconds": 0.24,
                     "candidates": [
-                        {"midi_note": 67, "relative_strength": 0.8},
                         {"midi_note": 55, "relative_strength": 0.7},
                         {"midi_note": 43, "relative_strength": 0.6},
                     ],
@@ -178,7 +182,7 @@ class ScoreBenchmarkTests(unittest.TestCase):
                 },
             ],
             "onset_clusters": [
-                {"center_seconds": 0.02, "event_count": 1},
+                {"center_seconds": 0.1, "event_count": 1},
                 {"center_seconds": 1.02, "event_count": 1},
             ],
         }
