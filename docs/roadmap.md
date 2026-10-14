@@ -63,8 +63,11 @@ education.
 
 ## Composition milestones
 
-In parallel, develop a four-role ensemble (drums, bass, harmony, lead), recipe
-realization, motif memory, deliberate silence, weighted creative controls, and
-buffered playback. The first musical acceptance test is a coherent twenty-minute
-journey with meaningful development and uninterrupted performance.
+In parallel, develop a role-based ensemble vocabulary (drums, bass, harmony,
+lead), recipe realization, motif memory, deliberate silence, weighted creative
+controls, and buffered playback. These are available roles, not a requirement
+that every passage contain all four; foreground focus can move to bass,
+percussion, harmony, or texture while the lead is absent. The first musical
+acceptance test is a coherent twenty-minute journey with meaningful
+development and uninterrupted performance.
 

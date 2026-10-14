@@ -33,6 +33,27 @@
       "required": ["roles", "events", "invariants", "transformations"],
       "properties": {
         "roles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "focus_plan": {
+          "type": "array",
+          "description": "Optional time-varying foreground plan. A lead role is not required.",
+          "items": {
+            "type": "object",
+            "required": ["start_beat", "duration_beats", "foreground_roles", "melody_presence"],
+            "properties": {
+              "start_beat": { "type": "number", "minimum": 0 },
+              "duration_beats": { "type": "number", "exclusiveMinimum": 0 },
+              "foreground_roles": {
+                "type": "array",
+                "items": { "type": "string" },
+                "uniqueItems": true
+              },
+              "melody_presence": {
+                "enum": ["foreground", "background", "absent", "intermittent", "unknown"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
         "events": {
           "type": "array",
           "items": {

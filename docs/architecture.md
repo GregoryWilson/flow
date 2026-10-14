@@ -18,6 +18,12 @@ Direction normally travels downward. Discoveries may travel upward. A musical
 accident that becomes compelling through repetition or response can alter the
 phrase, story, or Epic.
 
+Foreground focus also moves. A phrase may feature melody, bass, percussion,
+harmony, or a combination, and the focus can change by story, phrase, or
+measure. Lead melody is optional: it can move into the background, appear
+intermittently, or be absent while other parts carry the passage. A rest in one
+role does not imply silence in the ensemble.
+
 ## Start 1: Listening Lab
 
 The Listening Lab is a pipeline of imperfect specialists rather than one

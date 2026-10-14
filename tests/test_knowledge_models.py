@@ -1,8 +1,9 @@
 import json
 import unittest
+from dataclasses import replace
 
 from flow.composer import beethoven_opening_recipe
-from flow.knowledge.models import MusicalEvent, Recipe
+from flow.knowledge.models import FocusSpan, MelodyPresence, MusicalEvent, Recipe
 from flow.listening import beat_interval_windows, candidate_onset_gaps, cluster_onsets
 
 
@@ -27,6 +28,50 @@ class KnowledgeModelTests(unittest.TestCase):
                 events=(MusicalEvent("bass", 0, 1),),
                 invariants=(),
                 transformations=(),
+            )
+
+    def test_recipe_can_foreground_rhythm_section_with_no_melody(self):
+        recipe = Recipe(
+            roles=("bass", "percussion"),
+            events=(),
+            invariants=(),
+            transformations=(),
+            focus_plan=(
+                FocusSpan(
+                    start_beat=16,
+                    duration_beats=8,
+                    foreground_roles=("bass", "percussion"),
+                    melody_presence=MelodyPresence.ABSENT,
+                ),
+            ),
+        )
+
+        serialized = json.loads(
+            json.dumps(replace(beethoven_opening_recipe(), recipe=recipe).to_dict())
+        )
+
+        self.assertEqual(serialized["recipe"]["focus_plan"][0]["foreground_roles"],
+                         ["bass", "percussion"])
+        self.assertEqual(serialized["recipe"]["focus_plan"][0]["melody_presence"],
+                         "absent")
+
+    def test_focus_plan_rejects_unknown_roles_and_overlapping_spans(self):
+        with self.assertRaisesRegex(ValueError, "unknown roles"):
+            Recipe(
+                roles=("bass",),
+                events=(),
+                invariants=(),
+                transformations=(),
+                focus_plan=(FocusSpan(0, 4, ("percussion",)),),
+            )
+
+        with self.assertRaisesRegex(ValueError, "cannot overlap"):
+            Recipe(
+                roles=("bass",),
+                events=(),
+                invariants=(),
+                transformations=(),
+                focus_plan=(FocusSpan(0, 4, ("bass",)), FocusSpan(3, 2, ("bass",))),
             )
 
     def test_event_rejects_non_positive_duration(self):
