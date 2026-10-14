@@ -59,6 +59,10 @@ flow init-rhythm-demo --out my-idea.json
 flow render-recipe my-idea.json --out my-idea.wav --tempo 120 --tonic-midi 60
 ```
 
+`flow analyze` also records windowed timbre evidence: spectral shape, harmonic
+profiles around pitch candidates, and onset strength. These features describe
+the mixed sound; they do not identify instruments or separate audio sources.
+
 Audio files, model weights, databases, and rendered sessions are deliberately
 excluded from Git. See `examples/beethoven5/README.md` for the first experiment.
 

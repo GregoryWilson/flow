@@ -44,6 +44,12 @@
   onset and pitch evidence; allow one observed attack to support doubled parts.
 - Report simultaneous score pitches by lane, while keeping missing or weak
   pitch candidates visible instead of forcing every part to match.
+- Add timestamped timbre descriptors around pitch windows and score-aligned
+  attacks: spectral envelope, centroid, bandwidth, flatness, rolloff, harmonic
+  balance, and onset strength. Keep these as mixture evidence, not instrument
+  labels.
+- Build instrument templates from isolated examples, then test score-guided
+  timbre matching and separation against known parts and held-out recordings.
 - Measure note and phrase accuracy against reviewed reference events before
   treating the analyzer as a source of reusable musical knowledge.
 - Add an audio-only multi-pitch/voice-separation method and evaluate it against
