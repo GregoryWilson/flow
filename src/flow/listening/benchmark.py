@@ -42,6 +42,8 @@ def _observed_runs(
     reference_groups: Sequence[Mapping[str, Any]],
     minimum_strength: float,
     onset_clusters: Sequence[Mapping[str, Any]],
+    *,
+    include_all_pitch_classes: bool = False,
 ) -> list[dict[str, Any]]:
     target_classes = {int(group["pitch_class"]) for group in reference_groups}
     runs: list[dict[str, Any]] = []
@@ -53,7 +55,7 @@ def _observed_runs(
         for candidate in window.get("candidates", []):
             midi_note = int(candidate["midi_note"])
             pitch_class = midi_note % 12
-            if pitch_class not in target_classes:
+            if not include_all_pitch_classes and pitch_class not in target_classes:
                 continue
             strength = float(candidate["relative_strength"])
             strengths[pitch_class] = max(strengths.get(pitch_class, 0.0), strength)
@@ -87,13 +89,18 @@ def _observed_runs(
             )
 
         expected_midi = next(
-            int(group["midi_note"])
-            for group in reference_groups
-            if int(group["pitch_class"]) == pitch_class
+            (
+                int(group["midi_note"])
+                for group in reference_groups
+                if int(group["pitch_class"]) == pitch_class
+            ),
+            None,
         )
-        current["peak_exact_pitch_strength"] = max(
-            current["peak_exact_pitch_strength"], exact_strengths.get(expected_midi, 0.0)
-        )
+        if expected_midi is not None:
+            current["peak_exact_pitch_strength"] = max(
+                current["peak_exact_pitch_strength"],
+                exact_strengths.get(expected_midi, 0.0),
+            )
 
     for run in runs:
         run["onset_cluster_count"] = sum(
@@ -968,8 +975,15 @@ def compare_analysis_to_score(
         key=lambda path: sum(float(run["peak_pitch_class_strength"]) for run in path),
         default=[],
     )
+    all_pitch_runs = _observed_runs(
+        analysis.get("pitch_evidence_windows", []),
+        reference_groups,
+        minimum_strength,
+        analysis.get("onset_clusters", []),
+        include_all_pitch_classes=True,
+    )
     alignment_candidates = _rank_alignment_candidates(
-        reference_groups, runs, minimum_strength=minimum_strength
+        reference_groups, all_pitch_runs, minimum_strength=minimum_strength
     )
 
     comparison: list[dict[str, Any]] = []
