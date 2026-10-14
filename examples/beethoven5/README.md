@@ -57,8 +57,8 @@ flow init-beethoven --out beethoven-opening.recipe.json
   observed pitch-run starts. It does not align note attacks, and its local BPM
   values can be distorted by fermatas and broad pitch runs.
 - If the exact ordered pitch-class sequence is not found, review
-  `ranked_alignment_candidates`. These allow intervening whole-mix pitch runs
-  and rank possible score-time fits. They are hypotheses only: they do not
+  `ranked_alignment_candidates`. The search allows intervening whole-mix pitch
+  classes and ranks possible score-time fits. These are hypotheses only: they do not
   create score-beat anchors or trigger per-part attack alignment until the
   passage has been independently verified. Each candidate reports exact
   pitch support, score attack counts, observed run durations, and whole-mix
