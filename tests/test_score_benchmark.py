@@ -151,9 +151,15 @@ class ScoreBenchmarkTests(unittest.TestCase):
                     "end_seconds": 2.0,
                     "candidates": [{"midi_note": 62, "relative_strength": 0.65}],
                 },
+                {
+                    "start_seconds": 1.35,
+                    "end_seconds": 1.45,
+                    "candidates": [{"midi_note": 64, "relative_strength": 0.7}],
+                },
             ],
             "onset_clusters": [
                 {"center_seconds": 0.95, "event_count": 2},
+                {"center_seconds": 1.4, "event_count": 1},
                 {"center_seconds": 1.95, "event_count": 1},
             ],
         }
@@ -171,6 +177,10 @@ class ScoreBenchmarkTests(unittest.TestCase):
         self.assertEqual(attacks[0]["whole_mix_event_count"], 2)
         self.assertAlmostEqual(attacks[0]["expected_midi_peak_strength"], 0.8)
         self.assertTrue(attacks[1]["pitch_class_supported"])
+        unassigned = result["score_attack_alignment"]["unassigned_onsets"]
+        self.assertEqual(len(unassigned), 1)
+        self.assertAlmostEqual(unassigned[0]["onset_seconds"], 1.4)
+        self.assertEqual(unassigned[0]["nearby_pitch_candidates"][0]["pitch"], "E4")
 
 
 if __name__ == "__main__":
