@@ -253,6 +253,29 @@ def _score_context_at_beat(
     return contexts
 
 
+def _pitch_relationships_to_score(
+    midi_note: int, score_contexts: Sequence[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
+    """Report pitch-class and octave compatibility with notes in score context."""
+    relationships = []
+    for context in score_contexts:
+        if context.get("type") != "note_duration" or "midi_note" not in context:
+            continue
+        score_midi = int(context["midi_note"])
+        interval = midi_note - score_midi
+        same_pitch_class = midi_note % 12 == score_midi % 12
+        relationships.append(
+            {
+                "score_role": context.get("role"),
+                "score_pitch": context.get("pitch", _pitch_label(score_midi)),
+                "semitone_interval_from_score": interval,
+                "same_pitch_class": same_pitch_class,
+                "octave_displacement": interval // 12 if same_pitch_class else None,
+            }
+        )
+    return relationships
+
+
 def _score_attack_alignment(
     reference: Mapping[str, Any],
     analysis: Mapping[str, Any],
@@ -393,7 +416,7 @@ def _score_attack_alignment(
                 key=lambda attack: abs(float(attack["predicted_audio_seconds"]) - center),
             )
             score_beat = _score_beat_at_time(center, anchors)
-            score_context = _score_context_at_beat(
+            score_contexts = _score_context_at_beat(
                 score_beat, reference.get("events", [])
             )
             unassigned_onsets.append(
@@ -401,7 +424,7 @@ def _score_attack_alignment(
                     "onset_seconds": center,
                     "whole_mix_event_count": int(cluster.get("event_count", 1)),
                     "estimated_score_beat": score_beat,
-                    "score_contexts": score_context,
+                    "score_contexts": score_contexts,
                     "nearest_score_attack_pitch": nearest_attack["expected_pitch"],
                     "nearest_score_attack_delta_seconds": (
                         center - float(nearest_attack["predicted_audio_seconds"])
@@ -412,6 +435,9 @@ def _score_attack_alignment(
                             "pitch": _pitch_label(midi),
                             "peak_relative_strength": max(strengths),
                             "candidate_window_count": len(strengths),
+                            "score_pitch_relationships": _pitch_relationships_to_score(
+                                midi, score_contexts
+                            ),
                         }
                         for midi, strengths in sorted(
                             candidate_strengths.items(),
@@ -435,6 +461,7 @@ def _score_attack_alignment(
             "Pitch windows overlap in time and can smear attacks across neighboring notes.",
             "Unassigned onsets may be other scored parts, subdivisions, or detector errors.",
             "Estimated score context for unmatched onsets is interpolated from coarse anchors and is not a precise rhythmic transcription.",
+            "Pitch-class and octave relationships to score context show compatibility only; octave matches may be harmonics or instrument doublings.",
             "Attacks outside measured score-beat anchors have no predicted time.",
         ],
     }
