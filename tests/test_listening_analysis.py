@@ -1,6 +1,10 @@
 import unittest
 
-from flow.listening.analyze import _low_energy_intervals, strongest_pitch_candidates
+from flow.listening.analyze import (
+    _low_energy_intervals,
+    _window_frame_ranges,
+    strongest_pitch_candidates,
+)
 
 
 class ListeningAnalysisTests(unittest.TestCase):
@@ -29,6 +33,18 @@ class ListeningAnalysisTests(unittest.TestCase):
         self.assertEqual(intervals[0]["end_seconds"], 2.0)
         self.assertEqual(intervals[1]["start_seconds"], 3.0)
         self.assertEqual(intervals[1]["end_seconds"], 4.0)
+
+    def test_pitch_frame_windows_overlap_at_configured_hop(self):
+        self.assertEqual(
+            _window_frame_ranges(frame_count=11, window_frames=5, hop_frames=2),
+            ((0, 5), (2, 7), (4, 9), (6, 11), (8, 11), (10, 11)),
+        )
+
+    def test_pitch_frame_windows_reject_invalid_sizes(self):
+        with self.assertRaises(ValueError):
+            _window_frame_ranges(frame_count=10, window_frames=0, hop_frames=2)
+        with self.assertRaises(ValueError):
+            _window_frame_ranges(frame_count=10, window_frames=4, hop_frames=0)
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,7 +27,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--pitch-window",
         type=float,
         default=0.25,
-        help="pitch-evidence window in seconds (relative candidates, not transcription)",
+        help="pitch-evidence window width in seconds (relative candidates, not transcription)",
+    )
+    analyze.add_argument(
+        "--pitch-hop",
+        type=float,
+        default=0.05,
+        help="time step between overlapping pitch-evidence windows in seconds",
     )
 
     compare = commands.add_parser(
@@ -67,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
             start_seconds=args.start,
             duration_seconds=args.duration,
             pitch_window_seconds=args.pitch_window,
+            pitch_hop_seconds=args.pitch_hop,
         )
         result.write_json(args.out)
         print(f"Wrote measurements to {args.out}")
