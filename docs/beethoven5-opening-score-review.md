@@ -1,0 +1,39 @@
+# Beethoven 5 opening: score-assisted layer review
+
+## Purpose
+
+Use the full orchestral score as a temporary calibration reference for Flow's audio-only analysis. The score is consulted after the audio analysis has been saved; it does not supply notes or timing to the normal analysis path.
+
+## Reference inspected
+
+The opening system of the full score for Symphony No. 5 in C minor, Op. 67, movement I, marked *Allegro con brio* (quarter note = 108; 2/4). The score shows individual instrument staves. The score is available from [IMSLP](https://s9.imslp.org/files/imglnks/usimg/2/2c/IMSLP878035-PMLP1586-Symphony_No.5_Op.67_Ludwig_van_Beethoven.pdf). The first score page labels the parts and shows their opening activity.
+
+## What the score tells us about the opening
+
+- The repeated short–short–short–long idea is shared across the string section and the two clarinet parts. It is therefore an ensemble motif, not a line unique to one instrument.
+- Flutes, oboes, bassoons, horns, trumpets, and timpani are resting during the opening motif shown on this system. Their lack of a corresponding audio line in this passage is expected; it should not count as a detector miss.
+- The clarinet staves are transposed. Any comparison with audio pitch must convert their written notes to concert pitch first.
+- The source score gives notated timing and rests. It does not give the exact timing of the recording, and fermatas make a fixed beat-to-second conversion especially unreliable.
+
+The existing score reference captures the upper motif as concert-pitch G4 ×3, E-flat4 held, then F4 ×3 and D4 held. It is a motif reference, not a complete transcription of the orchestral texture. This review does not add uncertain inner-part pitches.
+
+## Comparison with the saved audio evidence
+
+The saved comparison finds the ordered pitch-class sequence G, E-flat, F, D. Its strongest matching runs are approximately 0.736–1.717 s, 1.717–4.171 s, 4.171–4.907 s, and 4.907–7.851 s. Exact-pitch evidence is present for each run. The whole-mix onset report counts 4 onset clusters in the G run and 3 in the F run, where the score expects three short attacks in each group.
+
+This supports the claim that the expected motif pitches occur in order. It does **not** verify the three attacks as melody attacks: onset clusters are computed from the full mixture, and the string and clarinet parts double the motif. The broad E-flat and D runs also include performance gaps/fermata time, so they should not be read as note-duration estimates.
+
+## What this calibrates
+
+For this passage, the score gives us a controlled example of:
+
+1. **Expected activity:** which scored parts are playing or resting.
+2. **Shared rhythm:** multiple parts may produce the same motif onsets, so one mix-level onset cannot be assigned to one instrument.
+3. **Concert-pitch conversion:** transposing notation must be normalized before comparing pitch candidates.
+4. **Phrase-level timing:** align the ordered score events to the recording before judging duration or expressive timing.
+
+The next useful algorithm step is a score-assisted, post-analysis alignment that reports per-part expected note/onset patterns and compares them to the same frozen audio evidence. It should label results as compatible audio evidence, not instrument recognition. For audio-only operation, Flow can later propose foreground, bass, and accompaniment candidates from register, onset density, continuity, and harmonic support without consulting a score.
+
+## Limits
+
+This is a small, manually reviewed opening passage, not a general score transcription benchmark. The existing analyzer reports pitch salience and whole-mix onset clusters; it does not separate sources, identify instruments, or prove which layer produced a pitch. Score-assisted results should remain separate from the audio-only report so the reference cannot leak into discovery.
