@@ -143,6 +143,47 @@ def _register_evidence_for_run(
     ]
 
 
+def _score_beat_alignment(
+    reference_groups: Sequence[Mapping[str, Any]], comparison: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    """Build a piecewise beat-to-time map from matched pitch-run boundaries."""
+    anchors = [
+        {
+            "pitch": row["expected_pitch"],
+            "score_beat": float(group["start_beat"]),
+            "audio_seconds": float(row["observed_start_seconds"]),
+        }
+        for group, row in zip(reference_groups, comparison, strict=True)
+        if row["observed_start_seconds"] is not None
+    ]
+    intervals = []
+    for left, right in zip(anchors, anchors[1:]):
+        beat_delta = right["score_beat"] - left["score_beat"]
+        second_delta = right["audio_seconds"] - left["audio_seconds"]
+        if beat_delta <= 0 or second_delta <= 0:
+            continue
+        seconds_per_beat = second_delta / beat_delta
+        intervals.append(
+            {
+                "from_pitch": left["pitch"],
+                "to_pitch": right["pitch"],
+                "score_beats": beat_delta,
+                "audio_seconds": second_delta,
+                "observed_seconds_per_score_beat": seconds_per_beat,
+                "implied_bpm": 60.0 / seconds_per_beat,
+            }
+        )
+    return {
+        "method": "piecewise interpolation between matched pitch-run boundaries",
+        "anchors": anchors,
+        "intervals": intervals,
+        "limitations": [
+            "Pitch-run boundaries are coarse anchors, not detected note attacks.",
+            "Fermatas and expressive timing can stretch intervals; implied BPM is local only.",
+        ],
+    }
+
+
 def compare_analysis_to_score(
     analysis: Mapping[str, Any],
     reference: Mapping[str, Any],
@@ -216,12 +257,14 @@ def compare_analysis_to_score(
         "ordered_pitch_class_sequence_found": bool(matched),
         "expected_pitch_class_sequence": [group["pitch_class_name"] for group in reference_groups],
         "comparison": comparison,
+        "score_beat_alignment": _score_beat_alignment(reference_groups, comparison),
+        "score_part_activity": reference.get("part_activity"),
         "observed_runs": runs,
         "interpretation_limits": [
             "Relative strength is normalized per window; it is not probability.",
             "Pitch-class matches may come from accompaniment or harmonics, not melody.",
             "Register candidates are whole-mix salience; octave matches may be harmonics.",
             "Whole-mix onset counts cannot confirm repeated attacks in the melody part.",
-            "Observed seconds are performance evidence and are not aligned to score beats.",
+            "Beat alignment uses pitch-run boundaries; it does not align individual note attacks.",
         ],
     }
