@@ -56,6 +56,11 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Review `score_beat_alignment` as a coarse map from score beat starts to
   observed pitch-run starts. It does not align note attacks, and its local BPM
   values can be distorted by fermatas and broad pitch runs.
+- If the exact ordered pitch-class sequence is not found, review
+  `ranked_alignment_candidates`. These allow intervening whole-mix pitch runs
+  and rank possible score-time fits. They are hypotheses only: they do not
+  create score-beat anchors or trigger per-part attack alignment until the
+  passage has been independently verified.
 - Review `score_attack_alignment.attacks` for each score note's interpolated
   time, nearest unused onset cluster, and local pitch candidates. A match means
   nearby whole-mix evidence only; it does not identify a melody source.
