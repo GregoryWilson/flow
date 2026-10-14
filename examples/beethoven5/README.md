@@ -51,6 +51,11 @@ flow init-beethoven --out beethoven-opening.recipe.json
 - Review the comparison's `register_evidence` for exact pitch candidates by
   octave within each matched pitch-class run. This can show multi-register
   support, but the whole mix and harmonic overtones prevent instrument attribution.
+- Review `score_part_activity` as score-only context for which sections are
+  active or resting; it does not attribute audio candidates to those parts.
+- Review `score_beat_alignment` as a coarse map from score beat starts to
+  observed pitch-run starts. It does not align note attacks, and its local BPM
+  values can be distorted by fermatas and broad pitch runs.
 - Inspect onset-adjacent pitch candidates with `flow inspect-onsets`; clusters
   and pitch candidates are whole-mix evidence, not source-separated note attacks.
 - Compare chroma evidence with the score only after audio-only output is saved.
