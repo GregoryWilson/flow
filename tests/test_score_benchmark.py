@@ -102,15 +102,16 @@ class ScoreBenchmarkTests(unittest.TestCase):
                 for beat, midi in [(0, 71), (2, 72), (4, 68), (6, 67)]
             ],
         }
-        # Extra whole-mix runs break the exact contiguous sequence, while the
-        # four score pitch classes still form a clear 120 BPM timing path.
+        # Extra chromatic and score-related runs break the exact sequence,
+        # while the four score pitches form a clear 120 BPM timing path.
         analysis = {
             "pitch_evidence_windows": [
                 {"start_seconds": start, "end_seconds": start + 0.1,
                  "candidates": [{"midi_note": midi, "relative_strength": 0.8}]}
                 for start, midi in [
-                    (10.0, 71), (10.3, 67), (11.0, 72), (11.3, 71),
-                    (12.0, 68), (12.3, 72), (13.0, 67),
+                    (10.0, 71), (10.15, 74), (10.3, 67), (11.0, 72),
+                    (11.15, 74), (11.3, 71), (12.0, 68), (12.15, 74),
+                    (12.3, 72), (13.0, 67),
                 ]
             ],
             "onset_clusters": [],
@@ -124,7 +125,7 @@ class ScoreBenchmarkTests(unittest.TestCase):
         self.assertTrue(best["review_required"])
         self.assertAlmostEqual(best["audio_start_seconds"], 10.0)
         self.assertAlmostEqual(best["implied_bpm"], 120.0)
-        self.assertEqual(best["skipped_observed_run_count"], 3)
+        self.assertEqual(best["skipped_observed_run_count"], 6)
         self.assertEqual(best["exact_pitch_support_count"], 4)
         self.assertEqual(best["matched_events"][0]["expected_attack_count"], 1)
         self.assertTrue(best["matched_events"][0]["expected_exact_pitch_supported"])
