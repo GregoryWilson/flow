@@ -125,6 +125,9 @@ class ScoreBenchmarkTests(unittest.TestCase):
         self.assertAlmostEqual(best["audio_start_seconds"], 10.0)
         self.assertAlmostEqual(best["implied_bpm"], 120.0)
         self.assertEqual(best["skipped_observed_run_count"], 3)
+        self.assertEqual(best["exact_pitch_support_count"], 4)
+        self.assertEqual(best["matched_events"][0]["expected_attack_count"], 1)
+        self.assertTrue(best["matched_events"][0]["expected_exact_pitch_supported"])
         self.assertEqual(result["score_beat_alignment"]["anchors"], [])
         self.assertTrue(all(
             attack["predicted_audio_seconds"] is None
