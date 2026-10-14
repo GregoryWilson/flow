@@ -60,7 +60,10 @@ flow init-beethoven --out beethoven-opening.recipe.json
   `ranked_alignment_candidates`. These allow intervening whole-mix pitch runs
   and rank possible score-time fits. They are hypotheses only: they do not
   create score-beat anchors or trigger per-part attack alignment until the
-  passage has been independently verified.
+  passage has been independently verified. Each candidate reports exact
+  pitch support, score attack counts, observed run durations, and whole-mix
+  onset counts so weak fits are visible; those counts still do not identify a
+  source part.
 - Review `score_attack_alignment.attacks` for each score note's interpolated
   time, nearest unused onset cluster, and local pitch candidates. A match means
   nearby whole-mix evidence only; it does not identify a melody source.
