@@ -12,6 +12,7 @@ from flow.composer import (
     rhythm_section_feature_recipe,
     write_midi,
 )
+from flow.knowledge.models import KnowledgeEntry
 from flow.listening.benchmark import compare_analysis_to_score
 from flow.listening.onset_review import inspect_onset_pitch_evidence
 from flow.listening import analyze_audio
@@ -89,6 +90,20 @@ def build_parser() -> argparse.ArgumentParser:
     audio_demo.add_argument("--tempo", type=float, default=120.0, help="quarter notes per minute")
     audio_demo.add_argument("--tonic-midi", type=int, default=60, help="MIDI note for tonic C4")
     audio_demo.add_argument("--sample-rate", type=int, default=44100)
+
+    init_rhythm = commands.add_parser(
+        "init-rhythm-demo", help="write an editable recipe for the melody-to-rhythm handoff"
+    )
+    init_rhythm.add_argument("--out", type=Path, default=Path("rhythm-section.recipe.json"))
+
+    render_recipe = commands.add_parser(
+        "render-recipe", help="render a knowledge-entry JSON recipe to WAV or MIDI"
+    )
+    render_recipe.add_argument("recipe", type=Path, help="input recipe JSON")
+    render_recipe.add_argument("--out", type=Path, required=True, help="output .wav or .mid file")
+    render_recipe.add_argument("--tempo", type=float, default=120.0)
+    render_recipe.add_argument("--tonic-midi", type=int, default=60)
+    render_recipe.add_argument("--sample-rate", type=int, default=44100)
     return parser
 
 
@@ -127,6 +142,32 @@ def main(argv: list[str] | None = None) -> int:
             sample_rate=args.sample_rate,
         )
         print(f"Wrote {args.out} ({len(notes)} note events, {args.sample_rate} Hz mono WAV)")
+        return 0
+    if args.command == "init-rhythm-demo":
+        rhythm_section_feature_recipe().write_json(args.out)
+        print(f"Wrote editable rhythm-section recipe to {args.out}")
+        return 0
+    if args.command == "render-recipe":
+        entry = KnowledgeEntry.read_json(args.recipe)
+        suffix = args.out.suffix.lower()
+        if suffix == ".wav":
+            notes = render_wav(
+                entry,
+                args.out,
+                tonic_midi=args.tonic_midi,
+                tempo_bpm=args.tempo,
+                sample_rate=args.sample_rate,
+            )
+        elif suffix in {".mid", ".midi"}:
+            notes = write_midi(
+                entry,
+                args.out,
+                tonic_midi=args.tonic_midi,
+                tempo_bpm=args.tempo,
+            )
+        else:
+            raise ValueError("output filename must end in .wav, .mid, or .midi")
+        print(f"Wrote {len(notes)} note events to {args.out}")
         return 0
     if args.command == "compare-score":
         analysis = json.loads(args.analysis.read_text(encoding="utf-8"))

@@ -82,6 +82,7 @@ development and uninterrupted performance.
 ### Composition phase 2 — audible recipe preview
 
 - Render the same scheduled recipe events to a dependency-free WAV preview.
+- Load and render edited knowledge-entry JSON recipes, not just built-in seeds.
 - Use simple deterministic synth voices to make role balance, timing, and
   melody dropouts easy to inspect without configuring a MIDI synthesizer.
 - Treat the preview as an arrangement check, then evolve toward instrument
