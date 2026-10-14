@@ -79,3 +79,11 @@ development and uninterrupted performance.
 - Use a local DAW or synthesizer for playback; MIDI export does not embed
   samples or claim to be the final real-time audio engine.
 
+### Composition phase 2 — audible recipe preview
+
+- Render the same scheduled recipe events to a dependency-free WAV preview.
+- Use simple deterministic synth voices to make role balance, timing, and
+  melody dropouts easy to inspect without configuring a MIDI synthesizer.
+- Treat the preview as an arrangement check, then evolve toward instrument
+  design and buffered real-time playback.
+
