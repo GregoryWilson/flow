@@ -177,8 +177,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-        status = "found" if result["ordered_pitch_class_sequence_found"] else "not found"
-        print(f"Ordered pitch-class sequence {status}; wrote comparison to {args.out}")
+        if result["ordered_pitch_class_sequence_found"]:
+            status = "Ordered pitch-class sequence found"
+        else:
+            candidate_count = len(result.get("ranked_alignment_candidates", []))
+            status = (
+                f"Exact ordered pitch-class sequence not found; ranked {candidate_count} "
+                "review candidate(s)"
+            )
+        print(f"{status}; wrote comparison to {args.out}")
         return 0
     if args.command == "inspect-onsets":
         analysis = json.loads(args.analysis.read_text(encoding="utf-8"))

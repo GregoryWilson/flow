@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from math import sqrt
 from statistics import median
 from typing import Any
 
@@ -41,6 +42,8 @@ def _observed_runs(
     reference_groups: Sequence[Mapping[str, Any]],
     minimum_strength: float,
     onset_clusters: Sequence[Mapping[str, Any]],
+    *,
+    include_all_pitch_classes: bool = False,
 ) -> list[dict[str, Any]]:
     target_classes = {int(group["pitch_class"]) for group in reference_groups}
     runs: list[dict[str, Any]] = []
@@ -52,7 +55,7 @@ def _observed_runs(
         for candidate in window.get("candidates", []):
             midi_note = int(candidate["midi_note"])
             pitch_class = midi_note % 12
-            if pitch_class not in target_classes:
+            if not include_all_pitch_classes and pitch_class not in target_classes:
                 continue
             strength = float(candidate["relative_strength"])
             strengths[pitch_class] = max(strengths.get(pitch_class, 0.0), strength)
@@ -86,13 +89,18 @@ def _observed_runs(
             )
 
         expected_midi = next(
-            int(group["midi_note"])
-            for group in reference_groups
-            if int(group["pitch_class"]) == pitch_class
+            (
+                int(group["midi_note"])
+                for group in reference_groups
+                if int(group["pitch_class"]) == pitch_class
+            ),
+            None,
         )
-        current["peak_exact_pitch_strength"] = max(
-            current["peak_exact_pitch_strength"], exact_strengths.get(expected_midi, 0.0)
-        )
+        if expected_midi is not None:
+            current["peak_exact_pitch_strength"] = max(
+                current["peak_exact_pitch_strength"],
+                exact_strengths.get(expected_midi, 0.0),
+            )
 
     for run in runs:
         run["onset_cluster_count"] = sum(
@@ -101,6 +109,158 @@ def _observed_runs(
             if run["start_seconds"] <= float(cluster["center_seconds"]) < run["end_seconds"]
         )
     return runs
+
+
+def _rank_alignment_candidates(
+    reference_groups: Sequence[Mapping[str, Any]],
+    runs: Sequence[Mapping[str, Any]],
+    *,
+    minimum_strength: float = 0.3,
+    limit: int = 5,
+    beam_width: int = 500,
+) -> list[dict[str, Any]]:
+    """Rank loose ordered matches without treating them as confirmed anchors.
+
+    Unlike the exact sequence check, this search allows unrelated pitch runs
+    between score events. Candidate paths are ranked by how well their run
+    times fit one score-beat-to-audio-time line, with a small penalty for
+    skipped runs. The bounded beam keeps the search useful for longer passages.
+    """
+    if len(reference_groups) < 2 or not runs:
+        return []
+
+    expected = [int(group["pitch_class"]) for group in reference_groups]
+    starts = [index for index, run in enumerate(runs)
+              if int(run["pitch_class"]) == expected[0]]
+    paths: list[tuple[int, ...]] = [(index,) for index in starts]
+
+    def metrics(path: tuple[int, ...]) -> tuple[float, float, float, float] | None:
+        selected = [runs[index] for index in path]
+        beats = [float(group["start_beat"]) for group in reference_groups[:len(path)]]
+        times = [float(run["start_seconds"]) for run in selected]
+        if len(path) < 2:
+            return 0.0, 0.0, 0.0, 0.0
+        mean_beat = sum(beats) / len(beats)
+        mean_time = sum(times) / len(times)
+        denominator = sum((beat - mean_beat) ** 2 for beat in beats)
+        if denominator <= 0:
+            return None
+        seconds_per_beat = sum(
+            (beat - mean_beat) * (time - mean_time)
+            for beat, time in zip(beats, times, strict=True)
+        ) / denominator
+        # Keep candidate tempos broad, while filtering paths that imply an
+        # implausible mapping for this score-time review step.
+        if not 60.0 / 240.0 <= seconds_per_beat <= 60.0 / 35.0:
+            return None
+        intercept = mean_time - seconds_per_beat * mean_beat
+        rms_beats = sqrt(sum(
+            ((time - (intercept + seconds_per_beat * beat)) / seconds_per_beat) ** 2
+            for beat, time in zip(beats, times, strict=True)
+        ) / len(path))
+        local_rates = [
+            (right_time - left_time) / (right_beat - left_beat)
+            for left_time, right_time, left_beat, right_beat in zip(
+                times, times[1:], beats, beats[1:]
+            )
+            if right_beat > left_beat and right_time > left_time
+        ]
+        rate_median = median(local_rates) if local_rates else seconds_per_beat
+        rate_cv = (
+            sqrt(sum((rate - rate_median) ** 2 for rate in local_rates) / len(local_rates))
+            / rate_median
+            if rate_median > 0 and local_rates
+            else 0.0
+        )
+        skipped = sum(
+            right_index - left_index - 1
+            for left_index, right_index in zip(path, path[1:])
+        )
+        cost = rms_beats + 0.1 * rate_cv + 0.02 * skipped
+        return cost, seconds_per_beat, rate_cv, rms_beats
+
+    # Extend one expected pitch class at a time, allowing other whole-mix
+    # candidates between score events. Only increasing audio times are valid.
+    for expected_pitch_class in expected[1:]:
+        extended: list[tuple[float, tuple[int, ...]]] = []
+        for path in paths:
+            previous = path[-1]
+            previous_start = float(runs[previous]["start_seconds"])
+            for index in range(previous + 1, len(runs)):
+                run = runs[index]
+                if int(run["pitch_class"]) != expected_pitch_class:
+                    continue
+                if float(run["start_seconds"]) <= previous_start:
+                    continue
+                candidate_path = (*path, index)
+                candidate_metrics = metrics(candidate_path)
+                if candidate_metrics is not None:
+                    extended.append((candidate_metrics[0], candidate_path))
+        if not extended:
+            return []
+        extended.sort(key=lambda item: (item[0], item[1][0], item[1][-1]))
+        paths = [path for _, path in extended[:beam_width]]
+
+    ranked = []
+    seen_starts: set[tuple[int, ...]] = set()
+    for path in paths:
+        if path in seen_starts:
+            continue
+        seen_starts.add(path)
+        candidate_metrics = metrics(path)
+        if candidate_metrics is None:
+            continue
+        cost, seconds_per_beat, rate_cv, rms_beats = candidate_metrics
+        matched_events = []
+        exact_pitch_support_count = 0
+        for group, run_index in zip(reference_groups, path, strict=True):
+            run = runs[run_index]
+            exact_pitch_supported = (
+                float(run["peak_exact_pitch_strength"]) >= minimum_strength
+            )
+            exact_pitch_support_count += int(exact_pitch_supported)
+            matched_events.append({
+                "expected_pitch": group["pitch"],
+                "score_beat": float(group["start_beat"]),
+                "expected_attack_count": int(group["attack_count"]),
+                "expected_duration_beats": float(group["end_beat"])
+                - float(group["start_beat"]),
+                "observed_pitch_class": run["pitch_class_name"],
+                "observed_start_seconds": float(run["start_seconds"]),
+                "observed_end_seconds": float(run["end_seconds"]),
+                "observed_run_duration_seconds": (
+                    float(run["end_seconds"]) - float(run["start_seconds"])
+                ),
+                "peak_pitch_class_strength": float(run["peak_pitch_class_strength"]),
+                "peak_exact_pitch_strength": float(run["peak_exact_pitch_strength"]),
+                "expected_exact_pitch_supported": exact_pitch_supported,
+                "onset_cluster_count": int(run["onset_cluster_count"]),
+            })
+        skipped = sum(
+            right_index - left_index - 1
+            for left_index, right_index in zip(path, path[1:])
+        )
+        ranked.append({
+            "review_required": True,
+            "timing_fit_score": round(1.0 / (1.0 + cost), 4),
+            "alignment_cost": round(cost, 4),
+            "timing_residual_rms_beats": round(rms_beats, 4),
+            "tempo_consistency_cv": round(rate_cv, 4),
+            "seconds_per_score_beat": round(seconds_per_beat, 5),
+            "implied_bpm": round(60.0 / seconds_per_beat, 2),
+            "audio_start_seconds": matched_events[0]["observed_start_seconds"],
+            "audio_end_seconds": matched_events[-1]["observed_start_seconds"],
+            "skipped_observed_run_count": skipped,
+            "exact_pitch_support_count": exact_pitch_support_count,
+            "matched_events": matched_events,
+        })
+
+    ranked.sort(key=lambda item: (
+        item["alignment_cost"],
+        item["skipped_observed_run_count"],
+        item["audio_start_seconds"],
+    ))
+    return [{"rank": index + 1, **candidate} for index, candidate in enumerate(ranked[:limit])]
 
 
 def _pitch_label(midi_note: int) -> str:
@@ -815,6 +975,16 @@ def compare_analysis_to_score(
         key=lambda path: sum(float(run["peak_pitch_class_strength"]) for run in path),
         default=[],
     )
+    all_pitch_runs = _observed_runs(
+        analysis.get("pitch_evidence_windows", []),
+        reference_groups,
+        minimum_strength,
+        analysis.get("onset_clusters", []),
+        include_all_pitch_classes=True,
+    )
+    alignment_candidates = _rank_alignment_candidates(
+        reference_groups, all_pitch_runs, minimum_strength=minimum_strength
+    )
 
     comparison: list[dict[str, Any]] = []
     for index, group in enumerate(reference_groups):
@@ -868,6 +1038,13 @@ def compare_analysis_to_score(
         "minimum_relative_strength": minimum_strength,
         "ordered_pitch_class_sequence_found": bool(matched),
         "expected_pitch_class_sequence": [group["pitch_class_name"] for group in reference_groups],
+        "ranked_alignment_candidates": alignment_candidates,
+        "alignment_candidate_limitations": [
+            "Candidates allow intervening whole-mix pitch runs and are ranking hypotheses, not confirmed score anchors.",
+            "Candidate alignments do not populate score-beat anchors or trigger score-part attack mapping.",
+            "Timing fit uses a broad 35–240 BPM range and a linear passage map; expressive timing may differ.",
+            "Timing fit scores are relative ranking values, not probabilities or musical correctness scores.",
+        ],
         "comparison": comparison,
         "score_beat_alignment": beat_alignment,
         "score_attack_alignment": attack_alignment,
